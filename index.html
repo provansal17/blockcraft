@@ -5952,7 +5952,7 @@ function nkey(n){return String(n||'').toLowerCase();}
 function nickId(n){const u=new TextEncoder().encode(nkey(n));let h='';for(const b of u)h+=b.toString(16).padStart(2,'0');return 'bcraft67-'+h;}
 function idNick(id){try{const h=String(id).replace(/^bcraft67-/,'');const u=new Uint8Array(h.length/2);for(let i=0;i<u.length;i++)u[i]=parseInt(h.substr(i*2,2),16);return new TextDecoder().decode(u);}catch(e){return '';}}
 function myNick(){return SET.nick||'Игрок';}
-function netInit(){if(!SET.friends)SET.friends={};if(SET.skin===undefined)SET.skin=0;}
+function netInit(){if(!SET.friends)SET.friends={};if(SET.skin===undefined)SET.skin=0;if(!SET.uid){SET.uid=Math.random().toString(36).slice(2,10)+Date.now().toString(36);saveSet();}}/* uid не меняется при смене ника — по нему друзья узнают вас под новым ником */
 function netIce(){const L=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
   if(SET.turnUrl)L.push({urls:SET.turnUrl.split(/\s*,\s*/),username:SET.turnUser||'',credential:SET.turnPass||''});return L;}
 /* ---------- скин: 2D-превью (кукла в инвентаре, выбор скина) ---------- */
@@ -5971,7 +5971,7 @@ function skin2DImg(x,d,slim,X,Y,u){const aw=slim?3:4;const bl=(sx,sy,w,h,dx,dy,o
   bl(40,8,8,8,4,0,1);bl(20,36,8,12,4,8,1);bl(44,36,aw,12,4-aw,8,1);bl(52,52,aw,12,12,8,1);bl(4,36,4,12,4,20,1);bl(4,52,4,12,8,20,1);}
 /* ---------- сигнальный сервер (PeerJS) или локальный канал (вкладки одного браузера) ---------- */
 function netUrl(){return (SET.netSrv||'').trim()||'wss://0.peerjs.com:443/peerjs';}
-function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc||NET.mq)netDisconnect(true);NET.st='connecting';NET.err='';NET.id=nickId(SET.nick);netUI();
+function netConnect(){netInit();if(!nickOk(SET.nick))return;NET.boxQ=new Map();if(NET.ws||NET.bc||NET.mq)netDisconnect(true);NET.st='connecting';NET.err='';NET.id=nickId(SET.nick);netUI();
   if((SET.netSrv||'').trim()==='local'){/* локальный режим: несколько вкладок одного браузера (для проверки) */
     const bc=new BroadcastChannel('bcraft-net');NET.bc=bc;let taken=false;
     bc.onmessage=ev=>{const m=ev.data;if(!m)return;if(m.type==='HELLO'&&m.src===NET.id&&m.n!==NET.nonce){bc.postMessage({type:'TAKEN',dst:NET.id,n:m.n});return;}
@@ -5994,16 +5994,19 @@ function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc||N
     if(was==='online'&&(NET.hosting||NET.guest))chatMsg('Связь с сервером поиска потеряна — уже подключённые игроки продолжают играть','#fa6');};
   ws.onerror=()=>{if(NET.st==='connecting'){NET.err='Сервер поиска недоступен';}};}
 function netOnline(){NET.st='online';NET.err='';NET.retry=0;NET.noRetry=false;clearInterval(NET.hb);if(NET.ws)NET.hb=setInterval(()=>{try{NET.ws&&NET.ws.readyState===1&&NET.ws.send(JSON.stringify({type:'HEARTBEAT'}));}catch(e){}},5000);
-  netUI();netPresAll();if(NET.hosting)netAnnounce(true);/* отправленные заявки повторяем, когда снова в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}}
+  netUI();netPresAll();if(NET.hosting)netAnnounce(true);/* отправленные заявки повторяем, когда снова в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netAppBox(f.n,{k:'freq'});}
+  /* сообщаем друзьям о смене ника (неделю, пока все не увидят) */SET.pendRen=(SET.pendRen||[]).filter(x=>Date.now()-x.t<7*864e5&&nkey(x.o)!==nkey(SET.nick));for(const x of SET.pendRen)for(const k in SET.friends)netAppBox(SET.friends[k].n,{k:'ren',old:x.o});}
 function netSigErr(t){NET.st='error';NET.err=t;netUI();}
 function netDisconnect(keepState){clearInterval(NET.hb);clearTimeout(NET.retryT);clearTimeout(NET.mqT);if(NET.mq){for(const c of NET.mq.conns)c.close();NET.mq=null;}if(NET.ws){const w=NET.ws;NET.ws=null;try{w.close();}catch(e){}}if(NET.bc){try{NET.bc.close();}catch(e){}NET.bc=null;}if(!keepState){NET.st='off';netUI();}}
 /* ---------- MQTT поверх WebSocket: публичные брокеры как «почтовые ящики» для поиска друзей ----------
    Подключаемся сразу к двум брокерам и шлём через оба: если один тормозит или недоступен, всё равно дойдёт. */
-const MQTT_DEF=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
+/* несколько независимых серверов поиска: если какой-то недоступен в стране/сети друга, общий всё равно найдётся */
+const MQTT_DEF=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081/mqtt','wss://mqtt.eclipseprojects.io:443/mqtt'];
 const mqStr=s=>{const b=new TextEncoder().encode(s);const o=new Uint8Array(b.length+2);o[0]=b.length>>8;o[1]=b.length&255;o.set(b,2);return o;};
 function mqPkt(h,parts){let n=0;for(const p of parts)n+=p.length;const L=[];let x=n;do{let d=x%128;x=Math.floor(x/128);if(x>0)d|=128;L.push(d);}while(x>0);
   const o=new Uint8Array(1+L.length+n);o[0]=h;o.set(L,1);let k=1+L.length;for(const p of parts){o.set(p,k);k+=p.length;}return o;}
 function mqTopic(id){return 'bcraft67/u/'+id;}
+function mqBox(dst,src,kind){return 'bcraft67/m/'+dst+'/'+src+'_'+(kind||'f');}/* «почтовый ящик»: заявки в друзья хранятся на сервере, пока друг не зайдёт в сеть */
 class MqttConn{constructor(url){this.url=url;this.ok=false;this.dead=false;this.buf=new Uint8Array(0);this.retry=0;this.open();}
   open(){let ws;try{ws=new WebSocket(this.url,'mqtt');}catch(e){this.later();return;}ws.binaryType='arraybuffer';this.ws=ws;
     ws.onopen=()=>{const cid='bc'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-6);
@@ -6017,11 +6020,12 @@ class MqttConn{constructor(url){this.url=url;this.ok=false;this.dead=false;this.
     for(;;){const B=this.buf;if(B.length<2)break;let rl=0,m=1,i=1,ok=false;for(;i<5&&i<B.length;i++){rl+=(B[i]&127)*m;m*=128;if(!(B[i]&128)){ok=true;break;}}if(!ok)break;
       const hd=i+1,tot=hd+rl;if(B.length<tot)break;const t=B[0]>>4,fl=B[0]&15,p=B.subarray(hd,tot);this.buf=B.slice(tot);try{this.pkt(t,fl,p);}catch(e){console.warn('mqtt',e);}}}
   pkt(t,fl,p){if(t===2){if(p[1]!==0){this.dead=true;try{this.ws.close();}catch(e){}return;}/* CONNACK → подписка на свой ящик */
-      this.send(mqPkt(0x82,[new Uint8Array([0,1]),mqStr(mqTopic(NET.id)),new Uint8Array([0])]));return;}
+      this.send(mqPkt(0x82,[new Uint8Array([0,1]),mqStr(mqTopic(NET.id)),new Uint8Array([0]),mqStr('bcraft67/m/'+NET.id+'/+'),new Uint8Array([0])]));return;}
     if(t===9){this.ok=true;this.retry=0;clearInterval(this.pi);this.pi=setInterval(()=>this.send(new Uint8Array([0xC0,0])),30000);
-      this.pub(mqTopic(NET.id),JSON.stringify({type:'HELLO',src:NET.id,n:NET.nonce,mid:Math.random().toString(36).slice(2)}));mqttState();return;}
-    if(t===3){const tl=(p[0]<<8)|p[1];let off=2+tl;if((fl>>1)&3)off+=2;mqttIn(new TextDecoder().decode(p.subarray(off)));}}
-  pub(topic,str){this.send(mqPkt(0x30,[mqStr(topic),new TextEncoder().encode(str)]));}
+      this.pub(mqTopic(NET.id),JSON.stringify({type:'HELLO',src:NET.id,n:NET.nonce,mid:Math.random().toString(36).slice(2)}));mqttState();
+      /* письма в ящики друзей — на каждый подключившийся сервер */if(NET.boxQ)for(const [t,s] of NET.boxQ)this.pub(t,s,true);return;}
+    if(t===3){const tl=(p[0]<<8)|p[1];let off=2+tl;if((fl>>1)&3)off+=2;const D=new TextDecoder();if(off>=p.length)return;mqttIn(D.decode(p.subarray(off)),D.decode(p.subarray(2,2+tl)));}}
+  pub(topic,str,ret){this.send(mqPkt(ret?0x31:0x30,[mqStr(topic),new TextEncoder().encode(str)]));}
   close(){this.dead=true;this.ok=false;clearTimeout(this.rt);clearInterval(this.pi);if(this.ws){const w=this.ws;this.ws=null;try{w.send(new Uint8Array([0xE0,0]));}catch(e){}try{w.close();}catch(e){}}}}
 function mqttConnect(srv){const urls=srv?srv.split(/\s*,\s*/).filter(Boolean):MQTT_DEF;NET.nonce=Math.random().toString(36).slice(2);NET.mq={conns:[],seen:new Set(),q:[]};
   for(const u of urls)NET.mq.conns.push(new MqttConn(u));
@@ -6030,7 +6034,8 @@ function mqttState(){if(!NET.mq)return;const n=NET.mq.conns.filter(c=>c.ok).leng
   if(n>0&&NET.st!=='online'){clearTimeout(NET.mqT);netOnline();}else if(n===0&&NET.st==='online'){NET.st='connecting';NET.err='';}netUI();}
 function mqttPub(dst,m){if(!NET.mq)return false;m.mid=Math.random().toString(36).slice(2)+Date.now().toString(36);const str=JSON.stringify(m);let ok=false;
   for(const c of NET.mq.conns)if(c.ok){c.pub(mqTopic(dst),str);ok=true;}return ok;}
-function mqttIn(str){let m;try{m=JSON.parse(str);}catch(e){return;}const M=NET.mq;if(!M||!m)return;if(m.mid){if(M.seen.has(m.mid))return;M.seen.add(m.mid);M.q.push(m.mid);if(M.q.length>600)M.seen.delete(M.q.shift());}
+function mqttIn(str,topic){let m;try{m=JSON.parse(str);}catch(e){return;}const M=NET.mq;if(!M||!m)return;
+  /* письмо из ящика получено — удаляем его с серверов */if(topic&&topic.startsWith('bcraft67/m/'))for(const c of M.conns)if(c.ok)c.pub(topic,'',true);if(m.mid){if(M.seen.has(m.mid))return;M.seen.add(m.mid);M.q.push(m.mid);if(M.q.length>600)M.seen.delete(M.q.shift());}
   if(m.src===NET.id){/* сообщения в собственный ящик: проверка, не занят ли ник */
     if(m.type==='HELLO'&&m.n!==NET.nonce){for(const c of M.conns)if(c.ok)c.pub(mqTopic(NET.id),JSON.stringify({type:'TAKEN',src:NET.id,n:m.n,mid:Math.random().toString(36).slice(2)}));}
     else if(m.type==='TAKEN'&&m.n===NET.nonce){NET.noRetry=true;netDisconnect(true);netSigErr('Этот ник сейчас уже в сети (игра открыта на другом устройстве или вкладке). Выберите другой ник.');}
@@ -6040,23 +6045,32 @@ function sigSend(nick,type,payload){const dst=nickId(nick);payload.from=myNick()
   if(NET.bc){NET.bc.postMessage(JSON.parse(JSON.stringify({type,payload,src:NET.id,dst})));return true;}
   if(NET.mq)return mqttPub(dst,{type,payload,src:NET.id});
   if(NET.ws&&NET.ws.readyState===1){NET.ws.send(JSON.stringify({type,payload,dst}));return true;}return false;}
-function netApp(nick,o){return sigSend(nick,'CANDIDATE',Object.assign({bc:'app'},o));}
+function netApp(nick,o){return sigSend(nick,'CANDIDATE',Object.assign({bc:'app',uid:SET.uid},o));}
+/* заявки/ответы в друзья: и сразу, и в «ящик» на сервере — дойдут, даже если друг сейчас не в сети */
+function netAppBox(nick,o){const ok=netApp(nick,o);if(NET.mq){const dst=nickId(nick),m={type:'CANDIDATE',payload:Object.assign({bc:'app',from:myNick(),uid:SET.uid},o),src:NET.id,mid:Math.random().toString(36).slice(2)+Date.now().toString(36)};
+    const str=JSON.stringify(m),t=mqBox(dst,NET.id,o.k==='ren'?'r':'f');(NET.boxQ||(NET.boxQ=new Map())).set(t,str);for(const c of NET.mq.conns)if(c.ok)c.pub(t,str,true);}return ok;}
+/* друг сменил ник: переносим его в списке под новым ником */
+function friendRename(ko,k,from,uid){const F=SET.friends,fo=F[ko];if(!fo||ko===k)return;const cur=F[k];F[k]=Object.assign({},fo,{n:from,uid:uid||fo.uid});if(cur&&cur.s==='ok')F[k].s='ok';delete F[ko];
+  if(NET.pres[ko]){NET.pres[k]=NET.pres[ko];delete NET.pres[ko];}saveSet();toast(fo.n+' теперь '+from);if(GAME.on)chatMsg('Друг '+fo.n+' сменил ник на '+from,'#9cf');netPres(from);netUI();}
 /* входящие сообщения сигнального сервера */
 function netSig(m){const P=m.payload||{};const from=P.from||idNick(m.src),k=nkey(from);if(!nickOk(from))return;
   if(P.bc==='app')return netAppMsg(from,k,P);
+  if(P.bc==='rl')return relayIn(from,k,P);
   if(m.type==='OFFER'&&P.bc==='rtc')return hostOffer(from,k,P);
   if(m.type==='ANSWER'&&P.bc==='rtc'){const p=NET.peers.get(k);if(p)p.answer(P.sdp);return;}
   if(m.type==='CANDIDATE'&&P.bc==='ice'){const p=NET.peers.get(k);if(p)p.ice(P.c);return;}}
 /* друзья и присутствие (через сигнальный сервер, без прямого соединения) */
-function netAppMsg(from,k,P){const F=SET.friends,f=F[k];
+function netAppMsg(from,k,P){const F=SET.friends;if(!F[k]&&P.uid&&P.k!=='ren'){for(const k2 in F)if(k2!==k&&F[k2].uid===P.uid){friendRename(k2,k,from,P.uid);break;}}
+  const f=F[k];if(f&&P.uid&&f.uid!==P.uid&&f.s==='ok'&&!f.uid){f.uid=P.uid;saveSet();}
   switch(P.k){
     case 'ping':netApp(from,{k:'pong',open:NET.hosting&&!!(f&&f.s==='ok'),world:NET.hosting?NET.wname:'',n:NET.guests.size+1,fr:!!(f&&f.s==='ok'),sk:SET.skin|0});break;
     case 'pong':{const pr=NET.pres[k]||(NET.pres[k]={});pr.on=true;pr.open=!!P.open;pr.world=P.world||'';pr.n=P.n||1;pr.sk=P.sk|0;pr.t=Date.now();if(NET.pend.has('p'+k)){clearTimeout(NET.pend.get('p'+k));NET.pend.delete('p'+k);}
       if(f&&f.s==='out'&&P.fr){f.s='ok';saveSet();}netUI();break;}
-    case 'freq':if(f&&f.s==='ok'){netApp(from,{k:'facc'});break;}if(f&&f.s==='out'){f.s='ok';saveSet();netApp(from,{k:'facc'});toast(from+' теперь ваш друг');netUI();break;}
+    case 'freq':if(f&&f.s==='ok'){netAppBox(from,{k:'facc'});break;}if(f&&f.s==='out'){f.s='ok';saveSet();netAppBox(from,{k:'facc'});toast(from+' теперь ваш друг');netUI();break;}
       F[k]={n:from,s:'in'};saveSet();toast('Заявка в друзья от '+from);chatMsg&&GAME.on&&chatMsg(from+' хочет добавить вас в друзья (меню «Сетевая игра»)','#9cf');netUI();break;
     case 'facc':if(f&&(f.s==='out'||f.s==='in')){f.s='ok';f.n=from;saveSet();toast(from+' принял(а) заявку в друзья');netPres(from);netUI();}break;
     case 'fdel':if(f){delete F[k];saveSet();netUI();}break;
+    case 'ren':{const ko=nkey(P.old||''),fo=F[ko];if(fo&&ko!==k&&(!fo.uid||!P.uid||fo.uid===P.uid))friendRename(ko,k,from,P.uid);break;}
     case 'wopen':if(f&&f.s==='ok'){const pr=NET.pres[k]||(NET.pres[k]={});const was=pr.on&&pr.open;pr.on=true;pr.open=true;pr.world=P.world||'';pr.n=P.n||1;pr.sk=P.sk|0;pr.t=Date.now();
       if(!was&&!NET.guest){toast(from+' открыл(а) мир «'+(P.world||'')+'»');if(GAME.on)chatMsg(from+' открыл(а) мир «'+(P.world||'')+'» для друзей — зайти можно через «Сетевая игра»','#9cf');}netUI();}break;
     case 'wclose':{const pr=NET.pres[k];if(pr){pr.open=false;pr.t=Date.now();}netUI();break;}
@@ -6066,10 +6080,10 @@ function netPres(nick){const k=nkey(nick);if(NET.st!=='online')return;if(!netApp
 function netNoReply(k){const pr=NET.pres[k]||(NET.pres[k]={});pr.on=false;pr.open=false;pr.t=Date.now();if(NET.pend.has('p'+k)){clearTimeout(NET.pend.get('p'+k));NET.pend.delete('p'+k);}netUI();}
 function netPresAll(){for(const k in SET.friends){const f=SET.friends[k];if(f.s==='ok'||f.s==='out')netPres(f.n);}}
 function friendAdd(n){n=String(n||'').trim();if(!nickOk(n))return 'Ник: 3–16 символов, буквы, цифры, _ и -';if(nkey(n)===nkey(SET.nick))return 'Это ваш собственный ник';
-  const k=nkey(n),f=SET.friends[k];if(f&&f.s==='ok')return 'Уже в друзьях';if(f&&f.s==='in'){friendAccept(k);return '';}
-  SET.friends[k]={n,s:'out'};saveSet();netApp(n,{k:'freq'});netPres(n);return '';}
-function friendAccept(k){const f=SET.friends[k];if(!f)return;f.s='ok';saveSet();netApp(f.n,{k:'facc'});netPres(f.n);netUI();}
-function friendDel(k){const f=SET.friends[k];if(!f)return;netApp(f.n,{k:'fdel'});delete SET.friends[k];saveSet();netUI();}
+  const k=nkey(n),f=SET.friends[k];if(f&&f.s==='ok'){netAppBox(f.n,{k:'freq'});netPres(f.n);return 'Уже в друзьях — запрос отправлен ещё раз';}if(f&&f.s==='in'){friendAccept(k);return '';}
+  SET.friends[k]={n,s:'out'};saveSet();netAppBox(n,{k:'freq'});netPres(n);return '';}
+function friendAccept(k){const f=SET.friends[k];if(!f)return;f.s='ok';saveSet();netAppBox(f.n,{k:'facc'});netPres(f.n);netUI();}
+function friendDel(k){const f=SET.friends[k];if(!f)return;netAppBox(f.n,{k:'fdel'});delete SET.friends[k];saveSet();netUI();}
 /* ---------- прямое соединение WebRTC ---------- */
 class NPeer{constructor(nick,init){this.nick=nick;this.k=nkey(nick);this.open=false;this.dead=false;this.iceQ=[];this.hasRD=false;this.chq=[];this.sent=0;
     const pc=new RTCPeerConnection({iceServers:netIce()});this.pc=pc;
@@ -6086,11 +6100,11 @@ class NPeer{constructor(nick,init){this.nick=nick;this.k=nkey(nick);this.open=fa
   sendBin(o,parts){if(!this.open||this.dead)return;const js=new TextEncoder().encode(JSON.stringify(o));let n=4+js.length;for(const p of parts)n+=p.byteLength;const u=new Uint8Array(n);new DataView(u.buffer).setUint32(0,js.length);u.set(js,4);let o2=4+js.length;
     for(const p of parts){u.set(new Uint8Array(p.buffer||p,p.byteOffset||0,p.byteLength),o2);o2+=p.byteLength;}try{this.dc.send(u.buffer);}catch(e){}}
   busy(){return this.dc&&this.dc.bufferedAmount>600000;}
-  close(why){if(this.dead)return;this.dead=true;this.open=false;try{this.dc&&this.dc.close();}catch(e){}try{this.pc.close();}catch(e){}NET.peers.delete(this.k);netPeerClose(this,why);}}
+  close(why){if(this.dead)return;this.dead=true;this.open=false;try{this.dc&&this.dc.close();}catch(e){}try{this.pc.close();}catch(e){}if(NET.peers.get(this.k)===this)NET.peers.delete(this.k);netPeerClose(this,why);}}
 function netData(p,data){if(typeof data!=='string'){const u=new Uint8Array(data),L=new DataView(data).getUint32(0);const o=JSON.parse(new TextDecoder().decode(u.subarray(4,4+L)));o.bin=data.slice(4+L);netMsg(p,o);return;}netMsg(p,JSON.parse(data));}
 function netPeerOpen(p){if(p===NET.host){p.send({k:'hello',nick:myNick(),skin:SET.skin|0,png:SET.skin===-1?SET.skinPng:null,slim:!!SET.skinSlim,ver:NET_VER});}}
 function netPeerClose(p,why){if(p===NET.host){NET.host=null;if(NET.joinCb){NET.joinCb('Не удалось подключиться: '+why);return;}if(NET.guest)guestLost('Связь с хозяином потеряна ('+why+')');return;}
-  const g=NET.guests.get(p.k);if(g){netGuestLeave(g,why);}}
+  const g=NET.guests.get(p.k);if(g&&g.p===p){netGuestLeave(g,why);}}
 function netMsg(p,o){NET.dbgR[o.k]=(NET.dbgR[o.k]||0)+1;if(p===NET.host)return guestMsg(o);const g=NET.guests.get(p.k);if(o.k==='hello'&&!g)return hostHello(p,o);if(g)hostMsg(g,o);}
 /* ============================================================
    ХОЗЯИН
@@ -6105,7 +6119,7 @@ function hostOffer(from,k,P){const f=SET.friends[k];
   if(!NET.hosting||!GAME.on||NET.guest){netApp(from,{k:'deny',why:'Мир друга сейчас не открыт для сети'});return;}
   if(!f||f.s!=='ok'){netApp(from,{k:'deny',why:'Вы не в списке друзей у '+myNick()});return;}
   if(NET.guests.size>=7){netApp(from,{k:'deny',why:'В мире уже максимум игроков'});return;}
-  const old=NET.peers.get(k);if(old)old.close('переподключение');const p=new NPeer(from,false);NET.peers.set(k,p);p.offer(P.sdp);}
+  if(!window.RTCPeerConnection)return;/* гость сам перейдёт на ретранслятор */const old=NET.peers.get(k);if(old)old.close('переподключение');let p;try{p=new NPeer(from,false);}catch(e){return;}NET.peers.set(k,p);p.offer(P.sdp);}
 function hostHello(p,o){const W=GAME.wid;DB.getWorld(W).then(w=>{if(!w||!NET.hosting){p.send({k:'bye',why:'Мир закрыт'});return;}
   const S=w.state||{},gs=(NET.gstates||{})[p.k]||null;
   const g={p,k:p.k,nick:o.nick,skin:o.skin|0,d:gs?gs.dim||0:0,x:0,y:0,z:0,yaw:0,pitch:0,sn:false,held:null,armor:[],mode:'survival',alive:true,ent:null,ps:gs,chReq:0,lastPos:0};
@@ -6234,9 +6248,48 @@ function nearPlayerDist(x,z){let d=Math.abs(x-PLAYER.x)+Math.abs(z-PLAYER.z);if(
    ============================================================ */
 function netJoin(nick){if(GAME.on){toast('Сначала выйдите из текущего мира');return;}if(NET.st!=='online'){toast('Нет связи с сервером поиска');return;}
   showLoading('Подключение к '+nick+'…',.1);const old=NET.peers.get(nkey(nick));if(old)old.close('переподключение');
-  const p=new NPeer(nick,true);NET.peers.set(p.k,p);NET.host=p;
-  const fail=why=>{clearTimeout(NET.joinT);NET.joinCb=null;if(NET.host===p)NET.host=null;p.close('отмена');hideLoading();multiScreen();setTimeout(()=>toast(why),50);};
-  NET.joinCb=fail;NET.joinT=setTimeout(()=>fail('Не удалось подключиться к '+nick+'. Возможно, ваша сеть не позволяет прямое соединение — см. «Настройки сети» (TURN).'),25000);}
+  /* браузер без WebRTC (отключён настройками, расширением, VPN) — сразу через ретранслятор */
+  let p=null;if(!NET.forceRelay&&window.RTCPeerConnection){try{p=new NPeer(nick,true);}catch(e){console.warn('webrtc',e);p=null;}}if(p){NET.peers.set(p.k,p);NET.host=p;}
+  const fail=why=>{clearTimeout(NET.joinT);clearTimeout(NET.relT);NET.joinCb=null;const h=NET.host;NET.host=null;if(p)p.close('отмена');if(h&&h!==p)h.close('отмена');hideLoading();multiScreen();setTimeout(()=>toast(why),50);};
+  /* прямое соединение не получилось быстро (друг далеко, мобильный интернет, строгий NAT) — играем через сервер-ретранслятор */
+  const relay=()=>{if(NET.joinCb!==fail||(NET.host&&NET.host.open))return;showLoading('Прямое соединение не удалось — подключаемся через ретранслятор…',.2);const r=new RPeer(nick,true);NET.host=r;if(p){const q=p;p=null;q.close('переход на ретранслятор');}NET.peers.set(r.k,r);};
+  clearTimeout(NET.relT);NET.relT=setTimeout(relay,NET.forceRelay||!p?10:8000);
+  NET.joinCb=fail;clearTimeout(NET.joinT);NET.joinT=setTimeout(()=>fail('Не удалось подключиться к '+nick+'. Проверьте, что мир друга открыт и вы оба в сети.'),40000);}
+/* ---------- ретранслятор: игра идёт через тот же сервер поиска, если прямое WebRTC-соединение невозможно ---------- */
+function rlPub(nick,P,use){P.bc='rl';P.from=myNick();if(NET.bc||!NET.mq)return sigSend(nick,'CANDIDATE',P);const dst=nickId(nick);const m={type:'CANDIDATE',payload:P,src:NET.id,mid:Math.random().toString(36).slice(2)+Date.now().toString(36)};const str=JSON.stringify(m);let ok=false;
+  NET.mq.conns.forEach((c,i)=>{if(c.ok&&(!use||!use.length||use.includes(i))){c.pub(mqTopic(dst),str);ok=true;}});if(!ok)for(const c of NET.mq.conns)if(c.ok){c.pub(mqTopic(dst),str);ok=true;}return ok;}
+function myBrokers(){return NET.mq?NET.mq.conns.filter(c=>c.ok).map(c=>c.url):[];}
+function b64e(u){let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s);}
+function b64d(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+class RPeer{constructor(nick,init,sid){this.nick=nick;this.k=nkey(nick);this.relay=true;this.open=false;this.dead=false;this.chq=[];this.sent=0;this.sid=sid||Math.random().toString(36).slice(2,10);
+    this.q=0;this.rq=0;this.rb=new Map();this.frag='';this.win=[];this.use=null;this.last=performance.now();
+    this.ti=setInterval(()=>this.tick(),400);if(init){this.ctl({o:'open',br:myBrokers(),ver:NET_VER});this.ri=setInterval(()=>{if(!this.open&&!this.dead)this.ctl({o:'open',br:myBrokers(),ver:NET_VER});},2500);}}
+  ctl(P){P.s=this.sid;rlPub(this.nick,P,this.use);}
+  setUse(br){if(!NET.mq||!Array.isArray(br))return;const L=[];NET.mq.conns.forEach((c,i)=>{if(br.includes(c.url))L.push(i);});this.use=L.slice(0,2);}
+  accept(br){this.setUse(br);this.open=true;this.ctl({o:'ok',br:myBrokers()});}
+  ctlIn(P){this.last=performance.now();if(P.o==='ok'&&!this.open){clearInterval(this.ri);this.setUse(P.br);this.open=true;netPeerOpen(this);}else if(P.o==='x')this.close('соединение закрыто');}
+  push(str,b){const N=24000;const n=Math.max(1,Math.ceil(str.length/N));for(let i=0;i<n;i++){const P={o:'d',s:this.sid,q:this.q++,d:str.slice(i*N,(i+1)*N)};if(b)P.b=1;if(n>1)P.f=[i,n];rlPub(this.nick,P,this.use);}
+    this.win.push([performance.now(),str.length]);this.sent++;}
+  send(o){if(!this.open||this.dead)return;this.push(JSON.stringify(o),0);NET.dbgS[o.k]=(NET.dbgS[o.k]||0)+1;}
+  sendBin(o,parts){if(!this.open||this.dead)return;const js=new TextEncoder().encode(JSON.stringify(o));let n=4+js.length;for(const p of parts)n+=p.byteLength;const u=new Uint8Array(n);new DataView(u.buffer).setUint32(0,js.length);u.set(js,4);let o2=4+js.length;
+    for(const p of parts){u.set(new Uint8Array(p.buffer||p,p.byteOffset||0,p.byteLength),o2);o2+=p.byteLength;}this.push(b64e(u),1);NET.dbgS[o.k]=(NET.dbgS[o.k]||0)+1;}
+  busy(){const t=performance.now();while(this.win.length&&t-this.win[0][0]>1000)this.win.shift();let n=0;for(const w of this.win)n+=w[1];return n>90000;}/* не перегружаем публичный сервер */
+  dataIn(P){this.last=performance.now();if(P.q<this.rq)return;this.rb.set(P.q,P);if(this.rb.size===1)this.gapT=performance.now();this.drain();}
+  drain(){while(this.rb.has(this.rq)){const P=this.rb.get(this.rq);this.rb.delete(this.rq);this.rq++;this.gapT=performance.now();
+      if(P.f){this.frag+=P.d;if(P.f[0]<P.f[1]-1)continue;}const d=P.f?this.frag:P.d;this.frag='';
+      try{netData(this,P.b?b64d(d).buffer:d);}catch(e){console.error('relay',e);}if(this.dead)return;}}
+  tick(){if(this.dead)return;const t=performance.now();
+    if(this.rb.size&&t-this.gapT>1500){/* потерянное сообщение — не ждём его вечно */this.rq=Math.min(...this.rb.keys());this.frag='';this.drain();}
+    if(this.open&&t-this.last>4000&&t-(this.kaT||0)>4000){this.kaT=t;this.ctl({o:'ka'});}
+    if(this.open&&t-this.last>30000)this.close('нет ответа');}
+  close(why){if(this.dead)return;try{this.ctl({o:'x'});}catch(e){}this.dead=true;this.open=false;clearInterval(this.ti);clearInterval(this.ri);if(NET.peers.get(this.k)===this)NET.peers.delete(this.k);netPeerClose(this,why);}}
+function relayIn(from,k,P){let p=NET.peers.get(k);
+  if(P.o==='open'){if(p&&p.relay&&p.sid===P.s){if(p.open)p.ctl({o:'ok',br:myBrokers()});return;}
+    if(!NET.hosting||!GAME.on||NET.guest){netApp(from,{k:'deny',why:'Мир друга сейчас не открыт для сети'});return;}const f=SET.friends[k];
+    if(!f||f.s!=='ok'){netApp(from,{k:'deny',why:'Вы не в списке друзей у '+myNick()});return;}if(NET.guests.size>=7&&!NET.guests.has(k)){netApp(from,{k:'deny',why:'В мире уже максимум игроков'});return;}
+    const g=NET.guests.get(k);if(g)netGuestLeave(g,'переподключение',true);if(p)p.close('переподключение');
+    const r=new RPeer(from,false,P.s);NET.peers.set(k,r);r.accept(P.br);return;}
+  if(!p||!p.relay||p.sid!==P.s)return;if(P.o==='d')p.dataIn(P);else p.ctlIn(P);}
 function guestMsg(o){switch(o.k){
   case 'welcome':clearTimeout(NET.joinT);NET.joinCb=null;NET.pvp=!!o.pvp;guestStart(o);break;
   case 'pvp_on':NET.pvp=!!o.v;chatMsg('PvP '+(NET.pvp?'включено':'выключено'),'#ff8');break;
@@ -6341,7 +6394,7 @@ function guestTick(dt){if(!NET.guest||!NET.host)return;const p=PLAYER;
   NET.tPst+=dt;if(NET.tPst>=10){NET.tPst=0;NET.host.send({k:'pst',ps:guestPS()});}}
 /* общий тик сети (вызывается каждый кадр) */
 function netTick(dt){if(NET.hosting&&GAME.on)hostTick(dt);if(NET.guest&&GAME.on)guestTick(dt);
-  NET.tPres+=dt;if(NET.tPres>20){NET.tPres=0;if(NET.st==='online'){netPresAll();/* заявки, которые ещё не приняты, отправляем повторно — дойдут, как только друг будет в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}if(NET.hosting)netAnnounce(true);}}
+  NET.tPres+=dt;if(NET.tPres>20){NET.tPres=0;if(NET.st==='online'){netPresAll();/* заявки, которые ещё не приняты, отправляем повторно — дойдут, как только друг будет в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netAppBox(f.n,{k:'freq'});}if(NET.hosting)netAnnounce(true);}}
   if(NET.hosting&&GAME.on){NET.tCold=(NET.tCold||0)+dt;if(NET.tCold>8){NET.tCold=0;NET.flushCold();}}
   nameTags();}
 function sayChat(v){const t=v.slice(0,200);if(NET.guest&&NET.host){NET.host.send({k:'chat',t});return;}if(NET.hosting){chatAll('<'+myNick()+'> '+t);return;}chatMsg('<'+(SET.nick||'Игрок')+'> '+t);}
@@ -6462,7 +6515,7 @@ function accountScreen(back){netInit();MULTI_ON=false;const custom=SET.skin===-1
   const sl=$('acslim');if(sl)sl.onchange=()=>{SET.skinSlim=sl.checked;saveSet();skinApplyLocal().then(()=>accountScreen(back));};
   const ni=$('acnick');ni.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.nick();};
   const map={back:()=>(back||titleScreen)(),up:()=>f.click(),rmsk:()=>{SET.skinPng=null;if(SET.skin===-1)SET.skin=0;saveSet();CUSTOM_SLOTS[0].ready=false;accountScreen(back);},
-    nick:()=>{const n=$('acnick').value.trim();if(!nickOk(n)){toast('Ник: 3–16 символов — буквы, цифры, _ и -');return;}if(n!==SET.nick){SET.nick=n;saveSet();NET.noRetry=false;netConnect();}toast('Ник сохранён');accountScreen(back);}};
+    nick:()=>{const n=$('acnick').value.trim();if(!nickOk(n)){toast('Ник: 3–16 символов — буквы, цифры, _ и -');return;}if(n!==SET.nick){const old=SET.nick;if(nickOk(old)&&nkey(old)!==nkey(n)){SET.pendRen=(SET.pendRen||[]).filter(x=>nkey(x.o)!==nkey(old)&&nkey(x.o)!==nkey(n));SET.pendRen.push({o:old,t:Date.now()});}SET.nick=n;saveSet();NET.noRetry=false;netConnect();}toast('Ник сохранён');accountScreen(back);}};
   bindMenu(map);}
 
 /* ============================================================
@@ -6632,7 +6685,10 @@ addEventListener('contextmenu',e=>{if(GAME.on)e.preventDefault();});
 addEventListener('mousemove',e=>{if(!GAME.locked||!GAME.on||GAME.paused)return;const k=SET.sens/100*.0022;PLAYER.yaw-=e.movementX*k;PLAYER.pitch=clamp(PLAYER.pitch-e.movementY*k,-1.5707,1.5707);});
 addEventListener('wheel',e=>{if(!GAME.on||UI.open||!GAME.locked)return;PLAYER.sel=(PLAYER.sel+(e.deltaY>0?1:-1)+9)%9;PLAYER.equipT=.25;UI.dirty=true;},{passive:true});
 function pickBlock(){const t=PLAYER.target;if(!t||!t.block)return;const id=t.id;const i=PLAYER.inv.findIndex((s,j)=>j<9&&s&&s.id===id);if(i>=0){PLAYER.sel=i;}else if(PLAYER.mode==='creative'){PLAYER.inv[PLAYER.sel]={id,n:IT[id]?IT[id].stack:64};}UI.dirty=true;}
-addEventListener('pointerdown',()=>SND.resume(),true);addEventListener('keydown',e=>{SND.resume();if(e.code==='F11'){e.preventDefault();toggleFullscreen();return;}const c=e.code;
+/* Ctrl+колёсико, Ctrl +/−/0 и щипок не масштабируют интерфейс игры */
+document.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey)e.preventDefault();},{passive:false});
+for(const ev of ['gesturestart','gesturechange','gestureend'])document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
+addEventListener('pointerdown',()=>SND.resume(),true);addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['Equal','Minus','Digit0','NumpadAdd','NumpadSubtract','Numpad0','BracketRight','Slash'].includes(e.code)&&!(CHAT.open&&e.code==='Slash'))e.preventDefault();SND.resume();if(e.code==='F11'){e.preventDefault();toggleFullscreen();return;}const c=e.code;
   if(CHAT.open){if(c==='Enter'||c==='NumpadEnter'){chatSubmit();e.preventDefault();}else if(c==='Escape'){closeChat();e.preventDefault();}return;}
   if(document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT')&&c!=='Escape')return;
   if(/^F\d+$/.test(c)||c==='Space'||c==='Tab')e.preventDefault();
