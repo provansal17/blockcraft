@@ -4788,15 +4788,16 @@ function survivalTick(dt){const p=PLAYER;
   STATS.sinceRest+=dt;}
 /* ---------- прицел и мышь ---------- */
 function updateTarget(){const p=PLAYER;const reach=p.mode==='creative'?5:4.5;const ep=eyePos(),lv=lookVec();const r=rayBlocks(ep,lv,reach,false);
-  let best=null,bt=reach;for(const e of ENTS){if(!(e.def||e.t==='crystal'||e.t==='fireball'||e.t==='smallfire'||e.t==='rplayer'&&NET.pvp&&e.alive!==false&&e.mode!=='spectator')||e.dead)continue;const hw=e.w/2+.1;
-    const bx=e.t==='ender_dragon'?[e.x-4,e.y-1.5,e.z-4,e.x+4,e.y+1.5,e.z+4]:[e.x-hw,e.y,e.z-hw,e.x+hw,e.y+e.h,e.z+hw];
+  let best=null,bt=reach;for(const e of ENTS){if(!(e.def||e.t==='crystal'||e.t==='fireball'||e.t==='smallfire'||e.t==='rplayer'&&NET.pvp&&e.alive!==false&&e.mode!=='spectator')||e.dead)continue;const rp=e.t==='rplayer',hw=e.w/2+(rp?0:.1),eh=rp?(e.swimPose||e.glide?.6:e.sneak?1.5:1.8):e.h;
+    const bx=e.t==='ender_dragon'?[e.x-4,e.y-1.5,e.z-4,e.x+4,e.y+1.5,e.z+4]:[e.x-hw,e.y,e.z-hw,e.x+hw,e.y+eh,e.z+hw];
+    /* стоим внутри другого игрока (в одной яме) — его не выделяем, иначе нельзя ни копать, ни ставить блоки */if(rp&&ep[0]>bx[0]&&ep[0]<bx[3]&&ep[1]>bx[1]-.3&&ep[1]<bx[4]+.3&&ep[2]>bx[2]&&ep[2]<bx[5])continue;
     const t=segAABB(ep[0],ep[1],ep[2],ep[0]+lv[0]*reach,ep[1]+lv[1]*reach,ep[2]+lv[2]*reach,...bx);if(t!==null&&t*reach<bt){bt=t*reach;best=e;}
     if(e.t==='ender_dragon'){const hx=e.x+Math.sin(e.yaw)*7,hz=e.z+Math.cos(e.yaw)*7;const t2=segAABB(ep[0],ep[1],ep[2],ep[0]+lv[0]*reach,ep[1]+lv[1]*reach,ep[2]+lv[2]*reach,hx-2,e.y-1,hz-2,hx+2,e.y+2,hz+2);if(t2!==null&&t2*reach<bt){bt=t2*reach;best=e;}}}
-  if(best&&(!r||bt<r.t)){p.target={ent:best};}else if(r){if(!p.target||!p.target.block||p.target.x!==r.x||p.target.y!==r.y||p.target.z!==r.z){p.breakP=0;}p.target=Object.assign({block:true},r);}else{p.target=null;p.breakP=0;}}
+  p.btarget=r?Object.assign({block:true},r):null;if(best&&(!r||bt<r.t)){p.target={ent:best};}else if(r){if(!p.target||!p.target.block||p.target.x!==r.x||p.target.y!==r.y||p.target.z!==r.z){p.breakP=0;}p.target=Object.assign({block:true},r);}else{p.target=null;p.breakP=0;}}
 let useCD=0,breakCD=0,hitSnd=0;
 function handleMouse(dt){NET.act++;try{handleMouse0(dt);}finally{NET.act--;}}/* всё, что игрок меняет руками, гость отправляет хозяину */
 function handleMouse0(dt){const p=PLAYER;if(UI.open||CHAT.open||!GAME.locked&&!TOUCH.on){p.breakP=0;if(p.bowT>0&&!MOUSE.r){}return;}
-  useCD-=dt;breakCD-=dt;const st=selStack(),it=st?IT[st.id]:null;const t=p.target;
+  useCD-=dt;breakCD-=dt;const st=selStack(),it=st?IT[st.id]:null;let t=p.target;
   // ЛКМ
   if(MOUSE.lClick){MOUSE.lClick=false;if(p.mode==='spectator'){const mobs=ENTS.filter(e=>e.def);if(mobs.length){p.specIdx=((p.specIdx||0)+1)%mobs.length;const m=mobs[p.specIdx];p.x=m.x;p.y=m.y+m.h+1;p.z=m.z;toast('Наблюдение: '+m.def.n);}return;}
     /* удар по блоку тушит огонь на этой его грани (как в оригинале) */if(t&&t.block&&t.nx!==undefined){const fx=t.x+t.nx,fy=t.y+t.ny,fz=t.z+t.nz,fb=getB(fx,fy,fz);if(fb===BK.fire||fb===BK.soul_fire){setB(fx,fy,fz,0);sfx('fizz',fx+.5,fy+.5,fz+.5,{vol:.5});p.swingT=.3;return;}}
@@ -4820,6 +4821,7 @@ function handleMouse0(dt){const p=PLAYER;if(UI.open||CHAT.open||!GAME.locked&&!T
   else{if(p.bowT>0&&st&&(it.bow||it.trident))releaseBow(st);p.bowT=0;p.useT=0;p.blocking=false;}
   if(MOUSE.rClick||(MOUSE.r&&useCD<=0&&it&&it.block!==undefined)){const first=MOUSE.rClick;MOUSE.rClick=false;if(useCD>0&&!first)return;useCD=.22;
     if(t&&t.ent){if(interactMob(t.ent,st))return;}
+    if(t&&t.ent&&t.ent.t==='rplayer'&&p.btarget)t=p.btarget;/* ПКМ «сквозь» друга — ставим блок за ним */
     if(it&&it.boat){const r=rayBlocks(eyePos(),lookVec(),5,false,true);if(r){const liq=BL[r.id].liquid==='water';const bx=r.x+(liq?0:r.nx),by=r.y+(liq?0:r.ny),bz=r.z+(liq?0:r.nz);
       const e=spawnMob('boat',bx+.5,by+(liq?.62:0),bz+.5,{persist:true});if(e){e.yaw=Math.atan2(-Math.sin(p.yaw),-Math.cos(p.yaw));if(p.mode!=='creative')consumeSel();sfx('place_wood',bx,by,bz);}}return;}
     if(t&&t.block){if(useBlock(t,st)){p.swingT=.3;return;}if(st){if(useItemOnBlock(t,st)){p.swingT=.3;return;}if(tryPlace(t,st))return;}}
@@ -5908,7 +5910,7 @@ const DB=(()=>{let db=null;const mem={worlds:new Map(),chunks:new Map(),id:1};le
   async function listWorlds(){await open();if(useMem)return [...mem.worlds.values()].sort((a,b)=>b.last-a.last);const all=await req(st('worlds').getAll());return all.sort((a,b)=>b.last-a.last);}
   async function getWorld(id){await open();if(useMem)return mem.worlds.get(id);return req(st('worlds').get(id));}
   async function putWorld(w){await open();if(useMem){if(!w.id)w.id=mem.id++;mem.worlds.set(w.id,w);return w.id;}return req(st('worlds','readwrite').put(w));}
-  const range=wid=>IDBKeyRange.bound(wid+'|',wid+'| ');
+  const range=wid=>IDBKeyRange.bound(wid+'|',wid+'|￿');
   async function deleteWorld(id){await open();if(useMem){mem.worlds.delete(id);for(const k of [...mem.chunks.keys()])if(k.startsWith(id+'|'))mem.chunks.delete(k);return;}
     await req(st('worlds','readwrite').delete(id));await req(st('chunks','readwrite').delete(range(id)));}
   async function chunkKeys(wid){await open();if(useMem)return new Set([...mem.chunks.keys()].filter(k=>k.startsWith(wid+'|')));return new Set(await req(st('chunks').getAllKeys(range(wid))));}
@@ -6581,7 +6583,7 @@ async function openWorld(id){const w=await DB.getWorld(id);if(!w)return;menu('')
   GAME.egg67=null;RAID=null;HERO=null;GAME.wid=id;GAME.seed=w.seed;GAME.seedStr=w.seedStr;GAME.cheats=!!w.cheats;GAME.hardcore=!!w.hardcore;GAME.difficulty=w.difficulty;GAME.worldDead=!!w.dead;GAME.view=0;
   startWorker(w.seed,{type:w.type,biome:w.biome,layers:w.layers,structs:w.structs,calm:!!w.calm});SAVED=await DB.chunkKeys(id);
   resetPlayer();ENTS.length=0;TILES.clear();DRAGON=null;GAME.boss=null;PARTS.length=0;SCHED.clear();
-  const S=w.state;
+  const S=w.state;NET.gstates=(S&&S.guests)||{};/* позиции друзей — свои у каждого мира */
   if(S){GAME.tod=S.tod;GAME.day=S.day;GAME.time=S.time||0;GAME.spawn=S.spawn;GAME.dragonKilled=S.dragonKilled;GAME.gateway=S.gateway;GAME.gateway2=S.gateway2;GAME.ach=S.ach||{};GAME.enchSeed=S.enchSeed||1;
     Object.assign(WEATHER,S.weather||{});Object.assign(STATS,{play:0,walked:0,mined:0,crafted:0,kills:0,deaths:0,eaten:0,dmgTaken:0,sinceRest:0,dragonTime:0},S.stats||{});GAME.pop=(S.pop||[[],[],[]]).map(a=>new Set(a));GAME.dimEnts=S.dimEnts||[[],[],[]];while(GAME.pop.length<DIMS.length)GAME.pop.push(new Set());while(GAME.dimEnts.length<DIMS.length)GAME.dimEnts.push([]);GAME.brPrev=S.brPrev||null;GAME.brFrom=S.brFrom||null;GAME.brInv=S.brInv||null;
     for(const [k,t] of S.tiles||[])TILES.set(k,t);NET.gstates=S.guests||{};Object.assign(PLAYER,S.player);PLAYER.mode=S.player.mode;if(GAME.worldDead)PLAYER.mode='spectator';CUR=DIMS[S.dim||0];}
