@@ -60,7 +60,15 @@ body.actbtn #itemname{visibility:hidden}#itemname{position:absolute;left:50%;bot
 #cursor{position:fixed;z-index:9;pointer-events:none;width:40px;height:40px}#cursor .slot,#cursor img{pointer-events:none}#cursor>img{position:absolute;left:4px;top:4px;width:32px;height:32px}#cursor>b{position:absolute;right:2px;bottom:0;text-shadow:2px 2px 0 #3f3f3f}
 #tooltip{position:fixed;z-index:10;display:none;background:rgba(16,0,16,.94);border:2px solid #2a0a5a;padding:4px 8px;font-size:13px;pointer-events:none;max-width:280px}#tooltip .en{color:#b8b8ff}#tooltip .g{color:#bbb}#tooltip .k{color:#555;font-size:11px}
 #chat{position:fixed;left:6px;bottom:70px;z-index:5;width:min(560px,calc(var(--vw,1vw)*90));pointer-events:none}#chatlog div{background:rgba(0,0,0,.4);padding:1px 6px;font-size:14px;text-shadow:1px 1px 0 #000}
-#chatin{display:none;width:100%;font:14px monospace;background:rgba(0,0,0,.6);color:#fff;border:none;padding:6px;outline:none;pointer-events:auto;margin-top:4px}#chat.open #chatin{display:block}
+#chatf{display:none;gap:4px;margin-top:4px;pointer-events:auto}#chat.open #chatf{display:flex}
+#chatin{flex:1;min-width:0;font:15px monospace;background:rgba(0,0,0,.65);color:#fff;border:2px solid #000;box-shadow:inset 0 0 0 1px #555;padding:6px 8px;outline:none;pointer-events:auto;border-radius:0}
+#chatf .cbt{display:none;font:bold 18px "Trebuchet MS",sans-serif;color:#e0e0e0;background:#6f6f6f;border:2px solid #000;box-shadow:inset 2px 2px 0 #aaa,inset -2px -3px 0 #444;min-width:46px;padding:0 10px;text-shadow:2px 2px 0 #333;border-radius:0}
+#chatf .cbt:active{background:#7b86c6;color:#ffffa0}body.touchui #chatf .cbt{display:block}
+#chatsug{display:none;pointer-events:auto;background:rgba(0,0,0,.82);font:14px monospace;margin-top:2px;max-width:100%;border-left:2px solid #555}#chat.open #chatsug.on{display:block}
+#chatsug div{padding:3px 8px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}#chatsug div.sel{color:#ff5;background:rgba(255,255,255,.08)}#chatsug div:hover{color:#ffa}
+#chatsug .us{color:#ccc;cursor:default;border-top:1px solid #333}#chatsug .us b{color:#fff;font-weight:normal;text-decoration:underline}#chatsug .us i{color:#7af;font-style:normal}#chatsug .er{color:#f66;cursor:default}#chatsug .more{color:#777;cursor:default}
+body.touchui #chat.open{top:6px;bottom:auto;display:flex;flex-direction:column;width:calc(var(--vw,1vw)*100 - 190px)}body.touchui #chat.open #chatf{order:-2;margin-top:0}body.touchui #chat.open #chatsug{order:-1}
+body.touchui #chatsug{max-height:calc(var(--vh,1vh)*42);overflow-y:auto;-webkit-overflow-scrolling:touch}body.touchui #chatsug div{padding:7px 10px;font-size:15px}body.touchui #chatin{font-size:16px;padding:8px}body.touchui #chat.open #chatlog{max-height:calc(var(--vh,1vh)*30);overflow:hidden}
 #toasts{position:fixed;right:10px;top:10px;z-index:7;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
 .toast,.ach{background:#212121;border:2px solid #555;padding:8px 12px;font-size:14px;transition:opacity .6s,transform .6s;max-width:320px}.ach{background:#1a1a1a;border-color:#ffd700;color:#ff0}.ach b{color:#ffee55}.toast.out,.ach.out{opacity:0;transform:translateX(40px)}
 #menu{position:fixed;inset:0;z-index:8;display:none;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center,rgba(0,0,0,.15),rgba(0,0,0,.55))}#menu.open{display:flex}
@@ -112,6 +120,25 @@ body.actbtn #itemname{visibility:hidden}#itemname{position:absolute;left:50%;bot
 #t_menu{right:10px;top:10px}#t_chat{right:62px;top:10px}#t_view{right:114px;top:10px}#t_close{right:10px;top:10px;width:52px;height:46px}
 #t_inv{left:calc(50% + 190px);bottom:4px}
 body.touchui #hotbar{pointer-events:auto}body.touchui #debug,body.touchui #fps{display:none}
+/* ===== единый стиль интерфейса (как в оригинале): поля, ползунки, флажки, списки ===== */
+#menu input[type=text],#menu input:not([type]),#menu input[type=search],#menu input[type=number],#menu select,.form input:not([type=checkbox]):not([type=range]),.form select,#anvname,#csearch{font:15px "Trebuchet MS",sans-serif;background:#000;color:#fff;border:2px solid #a0a0a0;border-radius:0;padding:7px 8px;outline:none;box-shadow:none}
+#menu input:focus,#menu select:focus,#anvname:focus,#csearch:focus{border-color:#fff}#menu input::placeholder{color:#707070}
+#menu select option{background:#000;color:#fff}
+#menu input[type=range]{-webkit-appearance:none;appearance:none;flex:none;width:100%;min-width:0;height:26px;margin:2px 0 0;padding:0;background:#000;border:2px solid #a0a0a0;border-radius:0;cursor:pointer}
+#menu input[type=range]::-webkit-slider-runnable-track{height:22px;background:transparent}
+#menu input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:22px;background:#6f6f6f;border:2px solid #000;box-shadow:inset 2px 2px 0 #aaa,inset -2px -2px 0 #444;border-radius:0}
+#menu input[type=range]:hover::-webkit-slider-thumb{background:#7b86c6}
+#menu input[type=range]::-moz-range-thumb{width:10px;height:18px;background:#6f6f6f;border:2px solid #000;box-shadow:inset 2px 2px 0 #aaa,inset -2px -2px 0 #444;border-radius:0}
+#menu input[type=range]::-moz-range-track{background:transparent}
+#menu input[type=checkbox]{-webkit-appearance:none;appearance:none;flex:none;width:22px;height:22px;min-width:0;margin:0;padding:0;background:#000;border:2px solid #a0a0a0;border-radius:0;cursor:pointer;position:relative}
+#menu input[type=checkbox]:hover{border-color:#fff}
+#menu input[type=checkbox]:checked{background:#000 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9' shape-rendering='crispEdges'%3E%3Cpath fill='%2380ff20' d='M7 1h1v1h1v1H8v1H7v1H6v1H5v1H4v1H3V7H2V6H1V5H0V4h2v1h1v1h1V5h1V4h1V3h1z'/%3E%3C/svg%3E") center/16px 16px no-repeat}
+#menu label.ck,#menu label.chk{flex-direction:row;align-items:center;gap:10px;justify-content:flex-start;text-align:left;width:auto;font-size:14px;color:#ddd;cursor:pointer}
+#menu .form label{color:#ddd}#menu .form label b{color:#fff}
+.flist,.wopen .wcard,.fri{border-radius:0}
+.flist{border:2px solid #a0a0a0;background:#000c}
+.panel{border:2px solid #000;box-shadow:inset 0 0 0 2px #555}
+#chatsug,#chatin{font-family:"Trebuchet MS",monospace}
 </style>
 </head>
 <body>
@@ -119,7 +146,7 @@ body.touchui #hotbar{pointer-events:auto}body.touchui #debug,body.touchui #fps{d
 <div id="overlay"></div>
 <div id="hud"></div>
 <div id="debug"></div><div id="fps"></div>
-<div id="chat"><div id="chatlog"></div><input id="chatin" autocomplete="off" spellcheck="false"></div>
+<div id="chat"><div id="chatlog"></div><div id="chatsug"></div><form id="chatf" autocomplete="off"><input id="chatin" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" maxlength="256"><button type="button" id="chatslash" class="cbt">/</button><button type="submit" id="chatsend" class="cbt" title="Отправить">➤</button><button type="button" id="chatx" class="cbt" title="Закрыть">✕</button></form></div>
 <div id="toasts"></div>
 <div id="ui"></div><div id="cursor"></div><div id="tooltip"></div>
 <div id="menu"></div>
@@ -3114,7 +3141,7 @@ function damage(e,amt,cause,src){if(e.dead||amt<=0)return false;
   if(e.fireImm&&(cause==='fire'||cause==='lava'))return false;if(e.ifr>0&&cause!=='void'&&cause!=='kill'){if(amt<=e.lastDmg)return false;amt-=e.lastDmg;}
   if(e.effects&&e.effects.fire_resistance&&(cause==='fire'||cause==='lava'))return false;
   if(e===PLAYER){amt=playerArmorReduce(amt,cause);if(cause==='mob'||cause==='arrow'){const sc=GAME.difficulty===1?.5+amt*0:GAME.difficulty===3?1.5:1;amt*=sc;}
-    if(PLAYER.blocking&&src&&(cause==='mob'||cause==='arrow')){const dx=src.x-PLAYER.x,dz=src.z-PLAYER.z,fx=-Math.sin(PLAYER.yaw),fz=-Math.cos(PLAYER.yaw);if(dx*fx+dz*fz>0){sfx('shield',PLAYER.x,PLAYER.y,PLAYER.z);damageItem(PLAYER.off&&IT[PLAYER.off.id].shield?'off':'sel',1);return false;}}
+    if(PLAYER.blocking&&src&&(cause==='mob'||cause==='arrow'||cause==='player')){const dx=src.x-PLAYER.x,dz=src.z-PLAYER.z,fx=-Math.sin(PLAYER.yaw),fz=-Math.cos(PLAYER.yaw);if(dx*fx+dz*fz>0){sfx('shield',PLAYER.x,PLAYER.y,PLAYER.z);damageItem(PLAYER.off&&IT[PLAYER.off.id].shield?'off':'sel',1);return false;}}
     if(PLAYER.effects.absorption&&PLAYER.absorb>0){const a=Math.min(PLAYER.absorb,amt);PLAYER.absorb-=a;amt-=a;}}
   if(e.effects&&e.effects.resistance)amt*=.6;
   e.hp-=amt;e.lastDmg=amt+(e.ifr>0?e.lastDmg:0);e.ifr=.5;e.hurtT=.4;e.lastCause=cause;e.lastSrc=src;if(e.def&&e.def.kind==='passive'&&e.st){e.st.panic=5;const o=src&&src.owner||src;if(o&&o.x!==undefined)e.st.from=[o.x,o.y,o.z];}if(e===PLAYER){e.hurtDir=src&&src.x!==undefined?Math.sign(Math.sin(Math.atan2(src.x-e.x,src.z-e.z)+e.yaw)||1):(Math.random()<.5?-1:1);addExh(.1);}
@@ -4160,9 +4187,11 @@ function renderFrame(now,dt,ov){VIEW.dt=dt||0;let w,h;if(ov){w=h=ov.size;}else{d
   drawEntities(now);
   // контур выделенного блока и трещины
   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-  if(p.target&&p.target.block&&GAME.view===0&&PLAYER.mode!=='spectator'&&!UI.open){const t=p.target;const b=selBox(t.id,getM(t.x,t.y,t.z));const e=.002;const sb=BL[t.id].shape==='cube'?[0,0,0,16,16,16]:(()=>{const m=getM(t.x,t.y,t.z),nb=[getB(t.x,t.y,t.z+1),getB(t.x+1,t.y,t.z),getB(t.x,t.y,t.z-1),getB(t.x-1,t.y,t.z)];const bx=shapeBoxes(t.id,m,nb,false);if(!bx.length||['cross','crop','flat','dust','rail','lily','vine','ladder','fire','torch','portal','eportal'].includes(BL[t.id].shape))return b;let r=[16,16,16,0,0,0];for(const q of bx){for(let i=0;i<3;i++){r[i]=Math.min(r[i],q[i]);r[i+3]=Math.max(r[i+3],q[i+3]);}}return r;})();
+  if(p.target&&p.target.block&&PLAYER.mode!=='spectator'&&!UI.open){const t=p.target;const b=selBox(t.id,getM(t.x,t.y,t.z));const e=.002;const sb=BL[t.id].shape==='cube'?[0,0,0,16,16,16]:(()=>{const m=getM(t.x,t.y,t.z),nb=[getB(t.x,t.y,t.z+1),getB(t.x+1,t.y,t.z),getB(t.x,t.y,t.z-1),getB(t.x-1,t.y,t.z)];const bx=shapeBoxes(t.id,m,nb,false);if(!bx.length||['cross','crop','flat','dust','rail','lily','vine','ladder','fire','torch','portal','eportal'].includes(BL[t.id].shape))return b;let r=[16,16,16,0,0,0];for(const q of bx){for(let i=0;i<3;i++){r[i]=Math.min(r[i],q[i]);r[i+3]=Math.max(r[i+3],q[i+3]);}}return r;})();
     boxLines(t.x+sb[0]/16-e,t.y+sb[1]/16-e,t.z+sb[2]/16-e,t.x+sb[3]/16+e,t.y+sb[4]/16+e,t.z+sb[5]/16+e,[0,0,0,.55]);
     if(p.breakP>0)drawCracks(t.x,t.y,t.z,Math.min(9,Math.floor(p.breakP*10)),sb);}
+  /* трещины на блоках, которые сейчас ломают друзья */
+  for(const e of ENTS){if(e.t!=='rplayer'||!e.mb||!e.mine)continue;const [x,y,z,stg]=e.mb;const id=getB(x,y,z);if(!id)continue;const d=BL[id];const sb=d.shape==='cube'?[0,0,0,16,16,16]:selBox(id,getM(x,y,z))||[0,0,0,16,16,16];drawCracks(x,y,z,Math.min(9,stg|0),sb);}
   // лучи кристаллов, молнии, смерть дракона
   for(const e of ENTS){if(e.t==='bolt'){const R=RNG(Math.floor(e.seed));let a=[e.x,e.y+60,e.z];for(let k=0;k<12;k++){const b=[a[0]+(R()-.5)*3,a[1]-5,a[2]+(R()-.5)*3];if(k===11){b[0]=e.x;b[1]=e.y;b[2]=e.z;}const c=[.85,.9,1,.9];beam(a,b,.18,c,c);a=b;}}
     if(e.t==='ender_dragon'&&e.heal&&!e.heal.dead){const c=[1,.5,.9,.8];beam([e.heal.x,e.heal.y+1,e.heal.z],[e.x,e.y,e.z],.25,c,c);}
@@ -4217,27 +4246,37 @@ const HELD_CBS=[];
 function drawPlayerModel(now,e0,parts0,st0){const e=e0||PLAYER,U=P_ENT.U,PP=parts0||skinParts(SET.skin);const [s,b]=entLight(e);gl.uniform2f(U.uLt,s,b);gl.uniform1f(U.uGlow,0);
   const hurt=e.hurtT>0?[1,0,0,.4]:[0,0,0,0];
   // тело поворачивается за головой с запаздыванием (как в оригинале)
-  if(e.bodyYaw===undefined)e.bodyYaw=e.yaw;const moving=(e.bobAmp||0)>.15;let d=angDiff(e.yaw,e.bodyYaw);const sit=e.riding&&!e.riding.dead;if(sit){e.bodyYaw=e.riding.yaw+Math.PI;d=0;}
+  if(e.bodyYaw===undefined)e.bodyYaw=e.yaw;const moving=(e.aa||0)>.15;let d=angDiff(e.yaw,e.bodyYaw);const sit=e.riding&&!e.riding.dead;if(sit){e.bodyYaw=e.riding.yaw+Math.PI;d=0;}
   if(sit){}else if(moving||Math.abs(d)>.87){const k=moving?Math.min(1,VIEW.dt*10||.2):0;e.bodyYaw+=d*k;d=angDiff(e.yaw,e.bodyYaw);if(Math.abs(d)>.87)e.bodyYaw=e.yaw-Math.sign(d)*.87;}
-  const by=e.bodyYaw,walk=e.bob||0,amp=Math.min(1,(e.bobAmp||0)*1.4),sw=Math.sin(walk)*amp*.9;
-  const sn=e.sneak?1:0,swim=e.swimPose||e.glide;
+  animStep(e,now);const by=e.bodyYaw,walk=e.aw,amp=e.aa,sw=Math.sin(walk)*amp*.95;
+  const sn=e.sneak&&!e.swimPose?1:0,swim=e.swimPose||e.glide,crawlP=e.crawl&&!e.inW,swA=e.swA||0;
   const f=e.swingT>0?1-e.swingT/.3:0,fs=Math.sin(f*Math.PI),fq=Math.sin(Math.sqrt(f)*Math.PI*2);
   const st=e0?st0:selStack(),held=st&&IT[st.id]?IT[st.id]:null;
   const twist=fs>0?fq*.2:0;
-  let base=M4.chain(M4.tr(e.x,e.y-(sit?.56:sn?.2:0),e.z),M4.ry(by+Math.PI));
-  if(swim)base=M4.chain(base,M4.tr(0,.3,0),M4.rx(Math.PI/2+(e.pitch||0)*.5),M4.tr(0,-.9,0));
+  let base=M4.chain(M4.tr(e.x,e.y-(sit?.56:sn?.125:0),e.z),M4.ry(by+Math.PI));
+  const bodyP=swim&&!crawlP?clamp(-(e.pitch||0),-1.2,1.2):0;/* в воде тело вытянуто вдоль направления взгляда, ползком — горизонтально */
+  if(swim)base=M4.chain(base,M4.tr(0,.3,0),M4.rx(Math.PI/2+bodyP),M4.tr(0,-.9,0));
   if(e.sleepT>0&&e.sleepHead){const F=e.sleepHead;base=M4.chain(M4.tr(e.x-F[0]*1.5,e.y-.05,e.z-F[1]*1.5),M4.ry(Math.atan2(-F[0],-F[1])),M4.rx(-Math.PI/2));}// лежит на кровати
   base=M4.mul(base,M4.sc(1/16));
-  const torso=M4.chain(base,M4.tr(0,12,sn?-3:0),M4.ry(twist),M4.rx(sn?.5:0),M4.tr(0,-12,0));
-  const headR=M4.chain(M4.ry(clamp(angDiff(e.yaw,by),-1.2,1.2)),M4.rx(-(e.pitch||0)*(swim?.3:1)));
+  /* присед: тело не наклоняется, голова смотрит ровно туда же, куда камера */
+  const torso=M4.chain(base,M4.tr(0,12,0),M4.ry(twist),M4.tr(0,-12,0));
+  /* в позе плавания голова приподнята, чтобы смотреть вперёд (как в оригинале) */
+  const headR=M4.chain(M4.ry(clamp(angDiff(e.yaw,by),-1.2,1.2)),M4.rx(swim?clamp(-Math.PI/2-(e.pitch||0)-bodyP,-1.15,0):-(e.pitch||0)));
   const R={head:headR,legL:M4.rx(sw),legR:M4.rx(-sw),
-    armL:M4.chain(M4.rx(-sw*.8+(sn?-.4:0)),M4.rz(.06+Math.sin(now/1100)*.03)),
-    armR:M4.chain(M4.rx(sw*.8+(held?-.32:0)+(sn?-.4:0)-(fs*1.2+fs*(.7+(e.pitch||0))*.75)),M4.rz(-.06-Math.sin(now/1100)*.03+fs*.4))};
+    armL:M4.chain(M4.rx(-sw*.8+(sn?-.25:0)),M4.rz(.06+Math.sin(now/1100)*.03)),
+    armR:M4.chain(M4.rx(sw*.8+(held?-.32:0)+(sn?-.25:0)-(fs*1.2+fs*(.7+(swim?0:e.pitch||0))*.75)),M4.rz(-.06-Math.sin(now/1100)*.03+fs*.4))};
+  if(swim&&!e.glide){/* брасс: руки вперёд → в стороны → к бёдрам → назад вперёд; ноги — частые махи */
+    const c=((e.swc||0)%1+1)%1,a=Math.max(.25,swA);let rx,rz;
+    if(c<.35){const t=c/.35;rx=-Math.PI+t*(Math.PI*.45);rz=t*1.25;}else if(c<.7){const t=(c-.35)/.35;rx=-Math.PI*.55+t*Math.PI*.55;rz=1.25-t*1.05;}else{const t=(c-.7)/.3,tt=t*t*(3-2*t);rx=-tt*Math.PI;rz=.2*(1-tt);}
+    const idle=-Math.PI*.15;rx=idle+(rx-idle)*a;rz=rz*a;
+    R.armL=M4.chain(M4.rx(rx),M4.rz(rz));if(!(fs>0))R.armR=M4.chain(M4.rx(rx),M4.rz(-rz));
+    const kick=Math.sin(now/95)*.35*Math.max(.3,swA);R.legL=M4.rx(kick);R.legR=M4.rx(-kick);}
+  else if(e.glide){R.legL=M4.rx(.05);R.legR=M4.rx(-.05);R.armL=M4.rz(.35);if(!(fs>0))R.armR=M4.rz(-.35);}
   if(sit){const row=e.riding.ctrlF?Math.sin(now/180)*.35:0;R.legL=M4.chain(M4.rx(-1.45),M4.rz(-.12));R.legR=M4.chain(M4.rx(-1.45),M4.rz(.12));R.armL=M4.rx(-.55-row);if(!held)R.armR=M4.rx(-.55+row);}
   if(e.useT>0&&held&&(held.food||held.drink))R.armR=M4.chain(M4.rx(-1.3+Math.sin(now/60)*.1),M4.ry(-.4));
   if(held&&held.cross&&(st.loaded||e.crossT>0))R.armR=M4.chain(M4.rx(-1.45-(e.pitch||0)),M4.ry(-.25)),R.armL=M4.chain(M4.rx(-1.35-(e.pitch||0)),M4.ry(.6));
   if(e.bowT>0)R.armR=M4.chain(M4.rx(-1.5-(e.pitch||0)),M4.ry(-.1)),R.armL=M4.chain(M4.rx(-1.5-(e.pitch||0)),M4.ry(.5));
-  const mats={};for(const pt of PP){const bn=pt.base||pt.nm,isLeg=bn==='legL'||bn==='legR';mats[pt.nm]=[isLeg?M4.mul(base,M4.tr(0,0,sn?-1:0)):torso,R[pt.r]||null];}
+  const mats={};for(const pt of PP){const bn=pt.base||pt.nm,isLeg=bn==='legL'||bn==='legR';mats[pt.nm]=[isLeg?base:torso,R[pt.r]||null];}
   gl.uniform4fv(U.uTint,hurt);for(const pt of PP){const [B,r]=mats[pt.nm];drawPart(B,pt,r);}
   // броня
   for(let sl=0;sl<4;sl++){const a=e.armor&&e.armor[sl];if(!a)continue;const d2=IT[a.id];const k=d2.mat==='golden'?'golden':d2.mat;const L=ARMOR_PARTS[k]||ARMOR_PARTS.iron;
@@ -4252,6 +4291,13 @@ function drawPlayerModel(now,e0,parts0,st0){const e=e0||PLAYER,U=P_ENT.U,PP=part
         drawItemModel(id,M4.chain(A,M4.sc(16),M4.tr(0,-.05,.12),M4.ry(.785)),s,b,.3,false);
       else drawItemModel(id,M4.chain(A,M4.sc(16),M4.tr(0,0,.04),M4.rx(1.0),M4.ry(-Math.PI/2),M4.tr(0,held.tool?.05:-.2,0)),s,b,.42,false);
       gl.uniform2f(P_BLK.U.uLO,-1,-1);});}}
+/* анимация конечностей по горизонтальной скорости — одинаково для себя (F5) и для друзей, ноги не «замирают» в прыжке */
+function animStep(e,now){if(e._an===now)return;const dt=e._an?Math.min(.1,Math.max(0,(now-e._an)/1000)):0;e._an=now;
+  let hv;if(e===PLAYER&&!e.riding)hv=Math.hypot(e.vx||0,e.vz||0);else{hv=e._ax===undefined||!dt?0:Math.hypot(e.x-e._ax,e.z-e._az)/dt;if(hv>40)hv=0;}e._ax=e.x;e._az=e.z;
+  if(e.riding||e.sleepT>0)hv=0;if(e===PLAYER&&e.flyNow&&!e.inW)hv*=.35;
+  e.hvS=(e.hvS||0)+(hv-(e.hvS||0))*Math.min(1,dt*10);const t=Math.min(1.3,e.hvS/4.6);
+  e.aa=(e.aa||0)+(t-(e.aa||0))*Math.min(1,dt*10);e.aw=(e.aw||0)+e.hvS*dt*2.2;
+  const sv=e.swimPose?Math.hypot(e.hvS,(e===PLAYER?e.vy||0:0)):0;e.swA=(e.swA||0)+((e.swimPose?Math.min(1,sv/3):0)-(e.swA||0))*Math.min(1,dt*6);e.swc=(e.swc||0)+dt*(.35+.55*(e.swA||0));}
 function angDiff(a,b){let d=a-b;while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;return d;}
 function drawEntities(now){setEntCommon();const U=P_ENT.U,cam=VIEW.cam;
   for(const e of ENTS){if(!e.def||e.t==='ender_dragon')continue;const dd=(e.x-cam[0])**2+(e.z-cam[2])**2;if(dd>(VIEW.far*.7)**2)continue;
@@ -4604,6 +4650,7 @@ function attack(e){const p=PLAYER;addExh(.1);const st=selStack(),it=st?IT[st.id]
   if(p.mode==='spectator')return;
   let dm=it&&it.tool?it.tool.dmg:1;dm*=.2+ch*ch*.8;dm+=enchLvl(st,'sharpness')*.5+(enchLvl(st,'sharpness')?.5:0);if(p.effects.strength)dm+=3*(1+p.effects.strength.amp);
   const crit=ch>.9&&!p.onG&&p.vy<0&&!p.inW&&!p.climb;if(crit){dm*=1.5;spawnParticles('crit',e.x,e.y+e.h*.7,e.z,10);sfx('crit',e.x,e.y,e.z);}
+  if(e.t==='rplayer'){const kb=(p.sprint?6:3.5)+enchLvl(st,'knockback')*3;if(e.rp?damage(e,dm,'player',p)&&(knock(e,p,kb),1):netPvpHit(e,dm,kb))damageItem('sel',it&&it.tool&&it.tool.t==='sword'?1:2);return;}
   if(damage(e,dm,'mob',p)){knock(e,p,(p.sprint?6:3.5)+enchLvl(st,'knockback')*3);const fa=enchLvl(st,'fire_aspect');if(fa)e.fire=4*fa;
     if(e.def){if(e.def.kind!=='hostile'){e.st.panic=5;e.st.from=[PLAYER.x,PLAYER.y,PLAYER.z];if(e.def.kind==='neutral'||e.def.kind==='golem')e.angry=30;}
       if(e.def.group)for(const o of ENTS)if(o.t===e.t&&distTo(o,e)<20)o.angry=30;if(e.t==='bee')for(const o of ENTS)if(o.t==='bee'&&distTo(o,e)<12)o.angry=30;
@@ -4741,7 +4788,7 @@ function survivalTick(dt){const p=PLAYER;
   STATS.sinceRest+=dt;}
 /* ---------- прицел и мышь ---------- */
 function updateTarget(){const p=PLAYER;const reach=p.mode==='creative'?5:4.5;const ep=eyePos(),lv=lookVec();const r=rayBlocks(ep,lv,reach,false);
-  let best=null,bt=reach;for(const e of ENTS){if(!(e.def||e.t==='crystal'||e.t==='fireball'||e.t==='smallfire')||e.dead)continue;const hw=e.w/2+.1;
+  let best=null,bt=reach;for(const e of ENTS){if(!(e.def||e.t==='crystal'||e.t==='fireball'||e.t==='smallfire'||e.t==='rplayer'&&NET.pvp&&e.alive!==false&&e.mode!=='spectator')||e.dead)continue;const hw=e.w/2+.1;
     const bx=e.t==='ender_dragon'?[e.x-4,e.y-1.5,e.z-4,e.x+4,e.y+1.5,e.z+4]:[e.x-hw,e.y,e.z-hw,e.x+hw,e.y+e.h,e.z+hw];
     const t=segAABB(ep[0],ep[1],ep[2],ep[0]+lv[0]*reach,ep[1]+lv[1]*reach,ep[2]+lv[2]*reach,...bx);if(t!==null&&t*reach<bt){bt=t*reach;best=e;}
     if(e.t==='ender_dragon'){const hx=e.x+Math.sin(e.yaw)*7,hz=e.z+Math.cos(e.yaw)*7;const t2=segAABB(ep[0],ep[1],ep[2],ep[0]+lv[0]*reach,ep[1]+lv[1]*reach,ep[2]+lv[2]*reach,hx-2,e.y-1,hz-2,hx+2,e.y+2,hz+2);if(t2!==null&&t2*reach<bt){bt=t2*reach;best=e;}}}
@@ -4801,8 +4848,9 @@ function updBobber(e,dt){if(PLAYER.dead||distTo(e,PLAYER)>32||!selStack()||!IT[s
   else e.vy-=20*dt;physStep(e,dt);}
 const LV_bobber=[];
 /* ---------- смерть и возрождение ---------- */
-function playerDie(cause,src){const p=PLAYER;p.deathAt=[p.x,p.y,p.z,CUR.id];p.alive=false;p.hp=0;STATS.deaths++;const name=src&&src.def?src.def.n:null;
-  let msg='Игрок '+(DEATH_MSG[cause]||'погиб');if(name&&(cause==='mob'||cause==='arrow'||cause==='explosion'))msg='Игрок '+(cause==='arrow'?'застрелен':cause==='explosion'?'взорван':'убит')+': '+name;
+function playerDie(cause,src){const p=PLAYER;p.deathAt=[p.x,p.y,p.z,CUR.id];p.alive=false;p.hp=0;STATS.deaths++;const name=src&&src.def?src.def.n:src&&src.nick?src.nick:null;
+  const mp=NET.hosting||NET.guest,who=mp?myNick():'Игрок';let msg=who+' '+(DEATH_MSG[cause]||'погиб');if(name&&(cause==='mob'||cause==='arrow'||cause==='explosion'||cause==='player'))msg=who+' '+(cause==='arrow'?'застрелен':cause==='explosion'?'взорван':'убит')+(cause==='player'?' игроком ':': ')+name;
+  if(NET.hosting)chatAll(msg,'#f99');else if(NET.guest&&NET.host)NET.host.send({k:'dmsg',t:msg});
   if(!GAME.keepInv){for(const arr of [p.inv,p.armor])for(let i=0;i<arr.length;i++){if(arr[i])dropItem(p.x,p.y+1,p.z,arr[i],[(Math.random()-.5)*6,3,(Math.random()-.5)*6]);arr[i]=null;}if(p.off){dropItem(p.x,p.y+1,p.z,p.off);p.off=null;}
     spawnXP(p.x,p.y+1,p.z,Math.min(100,p.xpL*7));p.xpL=0;p.xpP=0;}
   sfx('death',p.x,p.y,p.z);showDeath(msg,p.xpT);}
@@ -4890,7 +4938,7 @@ function gatewayTravel(){const p=PLAYER;const g=GAME.gateway;if(!g)return;const 
    ============================================================ */
 const $=id=>document.getElementById(id);
 const UI={open:null,dirty:true,cursor:null,ctx:null,craft:Array(9).fill(null),craft2:Array(4).fill(null),tab:'build',search:'',scroll:0};
-const CHAT={open:false,log:[]};
+const CHAT={open:false,log:[],sug:[],cyc:null,hi:0,draft:''};
 const TOUCH={on:false,fw:0,st:0,jump:false,sneak:false,down:false,sprint:false};
 /* ---------- значки HUD ---------- */
 const HICON={};
@@ -4917,6 +4965,7 @@ function slotHTML(st){if(!st)return '';const d=IT[st.id];if(!d)return '';let h=`
   const max=(d.tool&&d.tool.dur)||(d.armor&&d.armor.dur)||d.dur;if(max&&st.dmg>0){const f=1-st.dmg/max;h+=`<i style="width:${Math.round(f*13)*2}px;background:hsl(${f*120},90%,45%)"></i>`;}return h;}
 let hudCache={};
 function updHUD(){const p=PLAYER;const show=GAME.on&&!MENU_PANO;$('hud').style.display=show?'':'none';if(!show)return;
+  {const cv=GAME.view?'none':'';if(hudCache.cv!==cv){hudCache.cv=cv;const c=$('cross');if(c)c.style.display=cv;}}
   // дрожание шкал как в оригинале: еда — когда насыщение кончилось, сердца — при малом здоровье
   if(GAME.tick!==hudCache.jt&&GAME.tick%2===0){hudCache.jt=GAME.tick;const jf=p.sat<=0&&p.food<20,jh=p.hp<=4&&p.alive;
     for(const [row,on] of [['foodrow',jf],['hearts',jh]]){const imgs=$(row).children;for(let i=0;i<imgs.length;i++)imgs[i].style.transform=on&&Math.random()<.35?`translateY(${Math.random()<.5?-2:2}px)`:'';}}
@@ -4961,8 +5010,63 @@ function toast(t){const d=document.createElement('div');d.className='toast';d.te
 function chatMsg(t,col){CHAT.log.push({t,col,time:performance.now()});if(CHAT.log.length>100)CHAT.log.shift();renderChat();}
 function renderChat(){const now=performance.now();$('chatlog').innerHTML=CHAT.log.filter(m=>CHAT.open||now-m.time<10000).slice(-12).map(m=>`<div style="color:${m.col||'#fff'}">${esc(m.t)}</div>`).join('');}
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-function openChat(pre){CHAT.open=true;document.exitPointerLock&&document.exitPointerLock();$('chat').classList.add('open');const i=$('chatin');i.value=pre||'';i.focus();renderChat();}
-function closeChat(){CHAT.open=false;$('chat').classList.remove('open');$('chatin').blur();renderChat();lockPointer();}
+function openChat(pre){CHAT.open=true;document.exitPointerLock&&document.exitPointerLock();$('chat').classList.add('open');const i=$('chatin');i.value=pre||'';
+  CHAT.hi=(SET.chatHist||[]).length;CHAT.draft='';CHAT.cyc=null;i.focus();try{i.setSelectionRange(i.value.length,i.value.length);}catch(e){}renderChat();chatSuggest();}
+function closeChat(){CHAT.open=false;CHAT.cyc=null;$('chat').classList.remove('open');$('chatsug').className='';$('chatin').blur();renderChat();lockPointer();}
+/* отправка: сообщение или команда; всё отправленное попадает в историю (стрелки ↑/↓) */
+function chatSubmit(){const v=$('chatin').value.trim();if(v){const H=SET.chatHist=Array.isArray(SET.chatHist)?SET.chatHist:[];if(H[H.length-1]!==v)H.push(v);if(H.length>60)H.splice(0,H.length-60);saveSet();
+    if(v.startsWith('/'))runCommand(v);else sayChat(v);}closeChat();}
+function chatHist(dir){const H=SET.chatHist||[],i=$('chatin');if(!H.length)return;if(CHAT.hi===H.length)CHAT.draft=i.value;
+  CHAT.hi=clamp(CHAT.hi+dir,0,H.length);i.value=CHAT.hi===H.length?CHAT.draft:H[CHAT.hi];CHAT.cyc=null;try{i.setSelectionRange(i.value.length,i.value.length);}catch(e){}chatSuggest();}
+/* ---------- подсказки команд, как в оригинале ---------- */
+const CMD_AL={gm:'gamemode',teleport:'tp',experience:'xp'};
+const CMDS={help:{d:'список команд'},gamemode:{d:'сменить режим игры',a:[{n:'режим',o:['survival','creative','adventure','spectator']}]},
+  time:{d:'время суток',a:[{n:'set|add|query',o:['set','add','query']},{n:'время',o:a=>a[1]==='set'?['day','noon','sunset','night','midnight','sunrise','1000']:a[1]==='add'?['1000','6000','12000']:[]}]},
+  weather:{d:'погода',a:[{n:'погода',o:['clear','rain','thunder']}]},
+  tp:{d:'телепортация',a:[{n:'x|моб',o:()=>['~',...Object.keys(MOBS)]},{n:'y',o:['~']},{n:'z',o:['~']}]},
+  give:{d:'выдать предмет',a:[{n:'предмет',o:()=>Object.keys(IK).filter(k=>IT[IK[k]]&&!IT[IK[k]].hide)},{n:'количество',o:['1','16','32','64'],opt:1}]},
+  kill:{d:'убить себя или мобов',a:[{n:'цель',o:()=>['@s','@e',...Object.keys(MOBS).map(k=>'@e[type='+k+']')],opt:1}]},
+  seed:{d:'сид мира'},difficulty:{d:'сложность',a:[{n:'сложность',o:['peaceful','easy','normal','hard']}]},
+  summon:{d:'призвать существо',a:[{n:'существо',o:()=>[...Object.keys(MOBS),'end_crystal','lightning_bolt','tnt']},{n:'x',o:['~'],opt:1},{n:'y',o:['~'],opt:1},{n:'z',o:['~'],opt:1}]},
+  locate:{d:'найти постройку',a:[{n:'постройка',o:['stronghold','village','fortress','bastion','end_city','desert_temple','jungle_temple','mineshaft','shipwreck','ruined_portal']}]},
+  spawnpoint:{d:'точка возрождения здесь'},setworldspawn:{d:'точка появления мира здесь'},
+  effect:{d:'эффекты',a:[{n:'give|clear',o:['give','clear']},{n:'эффект',o:a=>a[1]==='give'?Object.keys(EFFN):[]},{n:'секунды',o:['30','60','300','1000'],opt:1}]},
+  enchant:{d:'зачаровать предмет в руке',a:[{n:'чары',o:()=>Object.keys(ENCH)},{n:'уровень',o:['1','2','3','4','5'],opt:1}]},
+  xp:{d:'добавить опыт',a:[{n:'количество',o:['10','100','5L','30L']}]},clear:{d:'очистить инвентарь'},heal:{d:'вылечиться и насытиться'}};
+function cmdUsage(k,cur){const S=CMDS[k];if(!S)return '';return '/'+k+(S.a||[]).map((x,i)=>{const t=x.opt?'['+x.n+']':'<'+x.n+'>';return ' '+(i===cur?'<b>'+esc(t)+'</b>':esc(t));}).join('');}
+function chatSuggest(){const box=$('chatsug'),v=$('chatin').value;CHAT.sug=[];if(!CHAT.open||!v.startsWith('/')){box.className='';box.innerHTML='';return;}
+  const toks=v.slice(1).split(' '),i=toks.length-1,pre=toks[i].toLowerCase().replace(/^minecraft:/,'');let L=[],us='',more=0,next=false;
+  if(i===0){L=Object.keys(CMDS).filter(k=>k.startsWith(pre));next=k=>!!CMDS[k].a;us=L.length===1?cmdUsage(L[0],-1)+' <i>— '+esc(CMDS[L[0]].d)+'</i>':'';
+    if(!L.length)us='<span class="er">Неизвестная команда: /'+esc(toks[0])+'</span>';}
+  else{const k=CMD_AL[toks[0].toLowerCase()]||toks[0].toLowerCase(),S=CMDS[k];
+    if(!S)us='<span class="er">Неизвестная команда: /'+esc(toks[0])+'</span>';
+    else{const A=S.a||[],ar=A[i-1];us=cmdUsage(k,i-1)+' <i>— '+esc(S.d)+'</i>';
+      if(ar){let o=typeof ar.o==='function'?ar.o(toks.map(t=>t.toLowerCase())):ar.o;o=o||[];L=o.filter(x=>x.toLowerCase().startsWith(pre));if(pre&&L.length<8)for(const x of o)if(!L.includes(x)&&x.toLowerCase().includes('_'+pre))L.push(x);next=()=>i<A.length;}
+      else if(i>A.length)us='<span class="er">Лишние аргументы</span> '+us;}}
+  if(L.length===1&&L[0]===pre&&i>0)L=[];more=Math.max(0,L.length-10);L=L.slice(0,10);
+  CHAT.sug=L.map(x=>({v:x,sp:next&&next(x)}));const sel=CHAT.cyc?CHAT.cyc.i:-1;
+  box.innerHTML=L.map((x,j)=>`<div data-j="${j}" class="${j===sel?'sel':''}">${esc(i===0?'/'+x:x)}${i===0?' <i style="color:#777;font-style:normal">'+esc(CMDS[x].d)+'</i>':''}</div>`).join('')+(more?`<div class="more">…и ещё ${more}</div>`:'')+(us?`<div class="us">${us}</div>`:'');
+  box.className=box.innerHTML?'on':'';}
+/* Tab / касание: подставить подсказку (повторный Tab — следующая) */
+function chatPick(j,dir){const i=$('chatin');if(!CHAT.cyc){if(!CHAT.sug.length)return;const v=i.value,p=v.lastIndexOf(' ');CHAT.cyc={base:p<0?'/':v.slice(0,p+1),L:CHAT.sug.slice(),i:-1};}
+  const C=CHAT.cyc;C.i=j!==undefined?j:((C.i+(dir||1))%C.L.length+C.L.length)%C.L.length;const it=C.L[C.i];i.value=C.base+it.v+(it.sp?' ':'');
+  try{i.setSelectionRange(i.value.length,i.value.length);}catch(e){}
+  const box=$('chatsug');for(const d of box.querySelectorAll('[data-j]'))d.classList.toggle('sel',+d.dataset.j===C.i);}
+function chatInit(){const i=$('chatin'),f=$('chatf'),box=$('chatsug');
+  f.addEventListener('submit',e=>{e.preventDefault();chatSubmit();});
+  i.addEventListener('input',()=>{CHAT.cyc=null;chatSuggest();});
+  i.addEventListener('keydown',e=>{e.stopPropagation();const k=e.key,c=e.code;
+    if(k==='Enter'||c==='Enter'||c==='NumpadEnter'||e.keyCode===13){e.preventDefault();chatSubmit();}
+    else if(k==='Escape'||c==='Escape'){e.preventDefault();closeChat();}
+    else if(k==='Tab'){e.preventDefault();if(CHAT.cyc||CHAT.sug.length)chatPick(undefined,e.shiftKey?-1:1);}
+    else if(k==='ArrowUp'){e.preventDefault();if(CHAT.cyc)chatPick(undefined,-1);else chatHist(-1);}
+    else if(k==='ArrowDown'){e.preventDefault();if(CHAT.cyc)chatPick(undefined,1);else chatHist(1);}});
+  const keep=e=>e.preventDefault();/* не убирать клавиатуру телефона при нажатии кнопок */
+  box.addEventListener('mousedown',keep);box.addEventListener('touchstart',e=>{const d=e.target.closest('[data-j]');if(d){e.preventDefault();CHAT.cyc=null;chatPick(+d.dataset.j);CHAT.cyc=null;chatSuggest();}},{passive:false});
+  box.addEventListener('click',e=>{const d=e.target.closest('[data-j]');if(!d)return;CHAT.cyc=null;chatPick(+d.dataset.j);CHAT.cyc=null;chatSuggest();i.focus();});
+  for(const id of ['chatslash','chatsend','chatx']){const b=$(id);b.addEventListener('mousedown',keep);}
+  $('chatslash').addEventListener('click',()=>{if(!i.value.startsWith('/'))i.value='/'+i.value;i.focus();CHAT.cyc=null;chatSuggest();});
+  $('chatx').addEventListener('click',()=>closeChat());}
 /* ---------- достижения ---------- */
 const ACH={backrooms:['Не туда','Провалитесь в Закулисье'],backrooms_exit:['Проснулся','Найдите выход из Закулисья'],poolrooms:['Бассейны','Провалитесь на уровень 37'],poolrooms_exit:['Вниз по лестнице','Выберитесь из Бассейных комнат'],field:['Закат','Попадите на Бескрайнее поле'],field_exit:['Дверь домой','Шагните в дверной проём посреди поля'],wood:['Добыча древесины','Срубите дерево'],craft_table:['Мастерская','Создайте верстак'],pickaxe:['За работу!','Создайте кирку'],stone:['Каменный век','Добудьте камень'],iron:['Железный век','Получите железный слиток'],
   diamond:['Алмазы!','Добудьте алмаз'],portal_lit:['Огонь и обсидиан','Зажгите портал в Нижний мир'],nether:['Мы должны пойти глубже','Войдите в Нижний мир'],blaze:['В огонь','Добудьте огненный стержень'],eye:['Око за око','Бросьте око Края'],
@@ -5236,7 +5340,7 @@ const FLAT_PRESETS=[['Классический плоский','bedrock,dirt*2,g
   ['Обычный мир','bedrock,stone*59,dirt*3,grass_block','plains'],['Снежное королевство','bedrock,stone*59,dirt*3,grass_block,snow','ice_plains'],
   ['Бездонная пропасть','cobblestone*2,dirt*3,grass_block','plains'],['Пустыня','bedrock,stone*3,sandstone*52,sand*8','desert'],
   ['Для редстоуна','bedrock,stone*3,sandstone*60','desert',false],['Пустота','air','plains',false]];
-function titleScreen(){MENU_PANO=true;GAME.on=false;menu(`<img class="logoimg" src="${logoURL()}" alt="BlockCraft" draggable="false"><div class="splash">${['Бесконечные миры!','Собрано из кубиков!','Генерируется на лету!','Без единой картинки!','С 3D-кирками!','Теперь с драконом!'][Math.floor(Math.random()*6)]}</div>
+function titleScreen(){MENU_PANO=true;GAME.on=false;kbLock();menu(`<img class="logoimg" src="${logoURL()}" alt="BlockCraft" draggable="false"><div class="splash">${['Бесконечные миры!','Собрано из кубиков!','Генерируется на лету!','Без единой картинки!','С 3D-кирками!','Теперь с драконом!'][Math.floor(Math.random()*6)]}</div>
   <div class="mcol">${btn('Одиночная игра','single')}${btn('Сетевая игра','multi')}${btn('Аккаунт','account')}${btn('Настройки','settings')}${btn('Об игре','about')}</div><div class="foot">BlockCraft 1.0 · процедурная песочница · WebGL2</div>`);
   bindMenu({single:worldsScreen,multi:()=>multiScreen(),account:()=>accountScreen(),settings:()=>settingsScreen(titleScreen),about:aboutScreen});}
 function aboutScreen(){menu(`<div class="panel"><h2>Об игре</h2><p>BlockCraft — песочница из кубиков, целиком помещающаяся в один файл. Все текстуры, звуки, модели мобов и миры создаются процедурно прямо в браузере: шум Simplex, воксельный свет, генерация в Web Worker, сохранение в IndexedDB.</p>
@@ -5275,18 +5379,32 @@ function settingsScreen(back){const keys=Object.keys(SET.keys);const KN={forward
   <label class="ck"><input type="checkbox" id="s_smooth" ${SET.smooth?'checked':''}> Сглаживание освещения (AO)</label><label class="ck"><input type="checkbox" id="s_clouds" ${SET.clouds?'checked':''}> Облака</label>
   <label class="ck"><input type="checkbox" id="s_fps" ${SET.fps?'checked':''}> Показывать FPS</label><label class="ck"><input type="checkbox" id="s_bob" ${SET.bob?'checked':''}> Покачивание камеры</label>
   <label class="ck"><input type="checkbox" id="s_wave" ${SET.wave?'checked':''}> Колышущаяся листва</label><label class="ck"><input type="checkbox" id="s_hidpi" ${SET.hidpi?'checked':''}> Высокое разрешение (Retina)</label><label class="ck"><input type="checkbox" id="s_dynres" ${SET.dynres!==false?'checked':''}> Авто-разрешение при лагах</label><label class="ck"><input type="checkbox" id="s_post" ${SET.post!==false?'checked':''}> Шейдеры в Закулисье</label>
-  <label class="ck"><input type="checkbox" id="s_touch" ${SET.touch?'checked':''}> Сенсорное управление</label></div>
+  <label class="ck"><input type="checkbox" id="s_touch" ${SET.touch?'checked':''}> Сенсорное управление</label><label class="ck"><input type="checkbox" id="s_autofs" ${SET.autoFs!==false?'checked':''}> Полный экран в игре (Ctrl+W не закрывает вкладку)</label></div>
   <h3>Управление</h3><div class="keys">${keys.map(k=>`<div class="kb"><span>${KN[k]||k}</span><button class="mb sm" data-key="${k}">${keyName(SET.keys[k])}</button></div>`).join('')}</div>
   <div class="mrow">${btn('Готово','back')}${btn('Сбросить клавиши','reset')}</div></div>`);
   for(const [id,k] of [['rd','rd'],['fov','fov'],['sens','sens'],['vol','vol'],['mus','mus']]){const el=$('s_'+id);el.oninput=()=>{SET[k]=+el.value;$('v_'+id).textContent=el.value;saveSet();if(k==='vol'||k==='mus')SND.vol();};}
-  for(const [id,k] of [['smooth','smooth'],['clouds','clouds'],['fps','fps'],['bob','bob'],['wave','wave'],['hidpi','hidpi'],['dynres','dynres'],['post','post'],['touch','touch']]){const el=$('s_'+id);el.onchange=()=>{SET[k]=el.checked;saveSet();if(k==='smooth'){SMOOTH=SET.smooth;for(const c of CUR.chunks.values())c.dirty=true;}if(k==='touch')setupTouch();};}
+  for(const [id,k] of [['smooth','smooth'],['clouds','clouds'],['fps','fps'],['bob','bob'],['wave','wave'],['hidpi','hidpi'],['dynres','dynres'],['post','post'],['touch','touch'],['autofs','autoFs']]){const el=$('s_'+id);el.onchange=()=>{SET[k]=el.checked;saveSet();if(k==='smooth'){SMOOTH=SET.smooth;for(const c of CUR.chunks.values())c.dirty=true;}if(k==='touch')setupTouch();};}
   for(const b of $('menu').querySelectorAll('[data-key]'))b.onclick=()=>{b.textContent='…нажмите клавишу';const h=e=>{e.preventDefault();e.stopPropagation();SET.keys[b.dataset.key]=e.code;saveSet();b.textContent=keyName(e.code);removeEventListener('keydown',h,true);};addEventListener('keydown',h,true);};
   bindMenu({back,reset:()=>{SET.keys=Object.assign({},DEFKEYS);saveSet();settingsScreen(back);}});}
 function keyName(c){return ({Space:'Пробел',ShiftLeft:'Л.Shift',ShiftRight:'П.Shift',ControlLeft:'Л.Ctrl',ControlRight:'П.Ctrl',Slash:'/',Escape:'Esc'}[c])||c.replace('Key','').replace('Digit','');}
-function pauseScreen(){if(!GAME.on)return;GAME.paused=true;document.exitPointerLock&&document.exitPointerLock();const pl=NET.hosting?[...NET.guests.values()].map(g=>esc(g.nick)):NET.guest?[esc(NET.hostNick||'')+' (хозяин)',...[...NET.others.values()].map(e=>esc(e.nick))]:[];
-  menu(`<div class="panel"><h2>Пауза</h2>${btn('Вернуться к игре','resume')}${btn(document.fullscreenElement?'Выйти из полноэкранного режима':'Во весь экран','fs')}${NET.guest?'':btn(NET.hosting?'Закрыть мир для друзей':'Открыть для друзей','lan')}${btn('Настройки','settings')}${btn('Достижения и статистика','ach')}${btn(NET.guest?'Отключиться':'Сохранить и выйти','quit')}${pl.length?'<p class="g small">Игроки в мире: '+pl.join(', ')+'</p>':''}${NET.hosting||NET.guest?'<p class="g small">В сетевой игре пауза не останавливает мир.</p>':''}</div>`);
-  bindMenu({resume:resumeGame,fs:()=>{toggleFullscreen();setTimeout(pauseScreen,300);},lan:()=>{if(NET.hosting)netCloseWorld();else netOpenWorld();pauseScreen();},settings:()=>settingsScreen(pauseScreen),ach:achScreen,quit:quitWorld});}
-function toggleFullscreen(){const de=document.documentElement;try{if(document.fullscreenElement)document.exitFullscreen();else (de.requestFullscreen||de.webkitRequestFullscreen).call(de,{navigationUI:'hide'});}catch(e){toast('Браузер не разрешил полноэкранный режим');}}
+function pauseScreen(){if(!GAME.on)return;if(!GAME.paused)GAME.pauseAt=performance.now();GAME.paused=true;document.exitPointerLock&&document.exitPointerLock();const pl=NET.hosting?[...NET.guests.values()].map(g=>esc(g.nick)):NET.guest?[esc(NET.hostNick||'')+' (хозяин)',...[...NET.others.values()].map(e=>esc(e.nick))]:[];
+  menu(`<div class="panel"><h2>Пауза</h2>${btn('Вернуться к игре','resume')}${btn(document.fullscreenElement?'Выйти из полноэкранного режима':'Во весь экран','fs')}${NET.guest?'':btn(NET.hosting?'Мир для друзей: открыт':'Открыть для друзей','lan')}${btn('Настройки','settings')}${btn('Достижения и статистика','ach')}${btn(NET.guest?'Отключиться':'Сохранить и выйти','quit')}${pl.length?'<p class="g small">Игроки в мире: '+pl.join(', ')+'</p>':''}${NET.hosting||NET.guest?'<p class="g small">В сетевой игре пауза не останавливает мир.</p>':''}</div>`);
+  bindMenu({resume:resumeGame,fs:()=>{toggleFullscreen();setTimeout(pauseScreen,300);},lan:lanScreen,settings:()=>settingsScreen(pauseScreen),ach:achScreen,quit:quitWorld});}
+/* «Открыть для друзей» — как «Открыть для сети» в оригинале: режим игры гостей и PvP */
+function lanScreen(){if(!GAME.on||NET.guest)return;const LM=['world','survival','creative','adventure'],LN={world:'как в мире',survival:'Выживание',creative:'Творческий',adventure:'Приключение'};
+  const lm=LM.includes(SET.lanMode)?SET.lanMode:'world',pvp=SET.pvp!==false;
+  menu(`<div class="panel"><h2>${NET.hosting?'Мир открыт для друзей':'Открыть для друзей'}</h2>
+    ${btn('Режим игры друзей: '+LN[lm],'mode')}${btn('PvP (игроки бьют друг друга): '+(pvp?'Вкл':'Выкл'),'pvp')}
+    <p class="g small">${NET.hosting?'Изменения применяются сразу. Игроков в мире: '+NET.guests.size:'Друзья увидят ваш мир во вкладке «Сетевая игра» и смогут зайти.'}</p>
+    ${NET.hosting?btn('Закрыть мир для друзей','close'):btn('Открыть мир для друзей','open','green')}${btn('Назад','back')}</div>`);
+  bindMenu({mode:()=>{const n=LM[(LM.indexOf(lm)+1)%LM.length];if(NET.hosting)netSetGuestMode(n);else{SET.lanMode=n;saveSet();}lanScreen();},
+    pvp:()=>{if(NET.hosting)netSetPvp(!pvp);else{SET.pvp=!pvp;saveSet();}lanScreen();},
+    open:()=>{netOpenWorld();pauseScreen();},close:()=>{netCloseWorld();pauseScreen();},back:pauseScreen});}
+function toggleFullscreen(){const de=document.documentElement;try{if(document.fullscreenElement)document.exitFullscreen();else enterFullscreen(true);}catch(e){toast('Браузер не разрешил полноэкранный режим');}}
+function enterFullscreen(loud){const de=document.documentElement;if(document.fullscreenElement)return;try{const r=(de.requestFullscreen||de.webkitRequestFullscreen).call(de,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{if(loud)toast('Браузер не разрешил полноэкранный режим');});}catch(e){if(loud)toast('Браузер не разрешил полноэкранный режим');}}
+/* в полноэкранном режиме перехватываем клавиатуру целиком: Ctrl+W, Ctrl+T, Ctrl+N и т.п. больше не закрывают вкладку посреди бега */
+function kbLock(){try{const K=navigator.keyboard;if(!K||!K.lock)return;if(document.fullscreenElement&&GAME.on)K.lock().catch(()=>{});else K.unlock();}catch(e){}}
+document.addEventListener('fullscreenchange',kbLock);
 function achScreen(){const got=Object.keys(GAME.ach);const S=STATS;const fmt=s=>{s=Math.floor(s);return Math.floor(s/3600)+' ч '+Math.floor(s%3600/60)+' мин';};
   menu(`<div class="panel wide"><h2>Достижения (${got.length}/${Object.keys(ACH).length})</h2><div class="achl">${Object.entries(ACH).map(([k,[n,d]])=>`<div class="ai${GAME.ach[k]?' on':''}"><b>${n}</b><span>${d}</span></div>`).join('')}</div>
   <h3>Статистика</h3><div class="stl">Время в игре: ${fmt(S.play)}<br>Пройдено: ${Math.floor(S.walked)} блоков · Добыто блоков: ${S.mined} · Создано предметов: ${S.crafted}<br>Убито мобов: ${S.kills} · Смертей: ${S.deaths} · Съедено: ${S.eaten}${S.dragonTime?'<br>Дракон повержен на '+fmt(S.dragonTime):''}</div>${btn('Назад','back')}</div>`);bindMenu({back:pauseScreen});}
@@ -5333,7 +5451,7 @@ function cmdItem(k){k=k.replace(/^minecraft:/,'').toLowerCase();k=ALIAS[k]||k;if
 function runCommand(line){if(NET.guest){chatMsg('Команды доступны только хозяину мира','#f66');return;}const p=PLAYER;const a=line.trim().replace(/^\//,'').split(/\s+/);const c=a[0].toLowerCase();const need=()=>{if(!GAME.cheats&&c!=='seed'&&c!=='help'){chatMsg('Читы отключены в этом мире','#f66');return true;}return false;};
   const num=(s,b)=>s===undefined?b:s.startsWith('~')?b+(+s.slice(1)||0):+s;
   switch(c){
-  case 'help':chatMsg('Команды: /gamemode, /time, /weather, /tp, /give, /kill, /seed, /difficulty, /summon, /locate, /spawnpoint, /setworldspawn, /effect, /enchant, /xp, /clear, /heal','#ff8');return;
+  case 'help':chatMsg('Команды: '+Object.keys(CMDS).map(k=>'/'+k).join(', '),'#ff8');chatMsg('Начните вводить «/» — появятся подсказки. Tab — дополнить, ↑/↓ — история.','#aaa');return;
   case 'seed':chatMsg('Сид: ['+GAME.seedStr+']','#8f8');return;}
   if(need())return;
   switch(c){
@@ -5428,7 +5546,7 @@ function setupTouch(){const el=$('touch');TOUCH.on=!!SET.touch;document.body.cla
   btn('t_sneak',()=>{TOUCH.sneak=!TOUCH.sneak;$('t_sneak').classList.toggle('lock',TOUCH.sneak);});
   btn('t_down',()=>TOUCH.down=true,()=>TOUCH.down=false);
   btn('t_inv',()=>{UI.open?closeUI():openUI('inv');});btn('t_close',()=>{if(UI.open)closeUI();else if(CHAT.open)closeChat();});
-  btn('t_menu',()=>pauseScreen());btn('t_chat',()=>openChat());btn('t_view',()=>{GAME.view=(GAME.view+1)%3;});
+  btn('t_menu',()=>pauseScreen());btn('t_chat',()=>{},()=>{if(!CHAT.open)openChat();});btn('t_view',()=>{GAME.view=(GAME.view+1)%3;});
   // выбор слота касанием хотбара
   const hb=$('hotbar');if(hb){let ht=null,hs=-1;const drop=all=>{const st=PLAYER.inv[hs];if(!st||PLAYER.mode==='spectator')return;const n=all?st.n:1;dropItem(PLAYER.x,PLAYER.y+1.3,PLAYER.z,Object.assign({},st,{n}),lookVec().map(v=>v*5));st.n-=n;if(!st.n)PLAYER.inv[hs]=null;PLAYER.swing=1;UI.dirty=true;navigator.vibrate&&navigator.vibrate(20);};
     const stop=()=>{if(ht){clearTimeout(ht);clearInterval(ht);ht=null;}hb.classList.remove('hold');};
@@ -5980,7 +6098,7 @@ function netMsg(p,o){NET.dbgR[o.k]=(NET.dbgR[o.k]||0)+1;if(p===NET.host)return g
 /* хозяин сообщает друзьям, что мир открыт (или закрыт) — у них он сразу появляется в «Сетевой игре» */
 function netAnnounce(open){if(NET.st!=='online')return;for(const k in SET.friends){const f=SET.friends[k];if(f.s!=='ok')continue;netApp(f.n,open?{k:'wopen',world:NET.wname||'Мир',n:NET.guests.size+1,sk:SET.skin|0}:{k:'wclose'});}}
 function netOpenWorld(){if(!GAME.on||NET.guest)return;if(!nickOk(SET.nick)){toast('Сначала задайте ник в меню «Сетевая игра»');return;}if(NET.st!=='online')netConnect();
-  NET.hosting=true;NET.wname=NET.wname||'Мир';DB.getWorld(GAME.wid).then(w=>{NET.wname=w?w.name:'Мир';netAnnounce(true);});chatMsg('Мир открыт для друзей. Друзья могут зайти через меню «Сетевая игра».','#8f8');netPresAll();}
+  NET.hosting=true;NET.pvp=SET.pvp!==false;NET.wname=NET.wname||'Мир';DB.getWorld(GAME.wid).then(w=>{NET.wname=w?w.name:'Мир';netAnnounce(true);});chatMsg('Мир открыт для друзей. Друзья могут зайти через меню «Сетевая игра».','#8f8');netPresAll();}
 function netCloseWorld(why){if(!NET.hosting)return;for(const g of [...NET.guests.values()]){g.p.send({k:'bye',why:why||'Хозяин закрыл мир'});const pp=g.p;setTimeout(()=>pp.close('мир закрыт'),300);netGuestLeave(g,'мир закрыт',true);}
   NET.hosting=false;NET.flushCold();netAnnounce(false);chatMsg('Мир закрыт для друзей','#fa6');}
 function hostOffer(from,k,P){const f=SET.friends[k];
@@ -5996,15 +6114,15 @@ function hostHello(p,o){const W=GAME.wid;DB.getWorld(W).then(w=>{if(!w||!NET.hos
   const sk=[];if(SET.skin===-1&&SET.skinPng)sk.push({k:'skin',n:myNick(),png:SET.skinPng,slim:!!SET.skinSlim});for(const o2 of NET.guests.values())if(o2!==g&&o2.png)sk.push({k:'skin',n:o2.nick,png:o2.png,slim:o2.slim});
   setTimeout(()=>{for(const m of sk)p.send(m);if(g.png)for(const o2 of NET.guests.values())if(o2!==g)o2.p.send({k:'skin',n:g.nick,png:g.png,slim:g.slim});},400);
   p.send({k:'welcome',w:{name:w.name,seed:w.seed,seedStr:w.seedStr,opts:{type:w.type,biome:w.biome,layers:w.layers,structs:w.structs,calm:!!w.calm}},tod:GAME.tod,day:GAME.day,weather:{rain:WEATHER.rain,thunder:WEATHER.thunder,want:WEATHER.want,wantT:WEATHER.wantT},
-    diff:GAME.difficulty,spawn:GAME.spawn,hostDim:CUR.id,ps:gs,mode:(w.mode==='hardcore'||w.mode==='spectator')?'survival':w.mode,host:myNick()});
+    diff:GAME.difficulty,spawn:GAME.spawn,hostDim:CUR.id,ps:gs,mode:SET.lanMode&&SET.lanMode!=='world'?SET.lanMode:(w.mode==='hardcore'||w.mode==='spectator')?'survival':w.mode,host:myNick(),pvp:NET.pvp?1:0,fm:SET.lanMode&&SET.lanMode!=='world'?1:0});
   chatAll(o.nick+' заходит в мир','#ff8');netAnnounce(true);sfx('levelup',PLAYER.x,PLAYER.y,PLAYER.z,{vol:.4,ui:true});});}
 function netGuestLeave(g,why,silent){if(!NET.guests.has(g.k))return;NET.guests.delete(g.k);if(g.ps){NET.gstates=NET.gstates||{};NET.gstates[g.k]=g.ps;}
   if(g.ent){g.ent.dead=true;const i=ENTS.indexOf(g.ent);if(i>=0)ENTS.splice(i,1);g.ent=null;}nameTagDrop(g.k);if(!silent)chatAll(g.nick+' покидает мир','#ff8');}
 function hostMsg(g,o){switch(o.k){
   case 'ch':hostChunk(g,o.d,o.x,o.z);break;
   case 'sets':for(const s of o.L)hostApplySet(g,s);break;
-  case 'pos':{g.d=o.d;g.x=o.x;g.y=o.y;g.z=o.z;g.yaw=o.yw;g.pitch=o.pt;g.sn=!!o.sn;g.held=o.h?{id:o.h,n:1}:null;g.armor=(o.a||[]).map(id=>id?{id,n:1}:null);g.mode=o.mo;g.alive=o.al!==0;g.sw=o.sw;g.skin=o.sk|0;g.lastPos=performance.now();
-    if(o.sw&&g.ent)g.ent.swingT=.3;if(g.ent){g.ent.tx=o.x;g.ent.ty=o.y;g.ent.tz=o.z;}break;}
+  case 'pos':{g.d=o.d;g.x=o.x;g.y=o.y;g.z=o.z;g.yaw=o.yw;g.pitch=o.pt;g.sn=!!o.sn;g.held=o.h?{id:o.h,n:1}:null;g.armor=(o.a||[]).map(id=>id?{id,n:1}:null);g.mode=o.mo;g.alive=o.al!==0;g.sw=o.sw;g.skin=o.sk|0;g.f=o.f|0;g.mb=o.mb||0;g.lastPos=performance.now();
+    if(o.sw&&g.ent)g.ent.swingT=.3;if(g.ent)applyFlags(g.ent,g.f,g.mb);if(g.ent){g.ent.tx=o.x;g.ent.ty=o.y;g.ent.tz=o.z;}break;}
   case 'hit':{const e=ENTS.find(q=>q.id===o.i);if(!e||e.dead||!g.ent)break;const src=g.ent;if(damage(e,o.dm,'mob',src)){if(o.kb)knock(e,src,o.kb);if(o.fa)e.fire=Math.max(e.fire||0,o.fa);
       if(e.def&&e.def.kind!=='hostile'){e.st.panic=5;e.st.from=[src.x,src.y,src.z];if(e.def.kind==='neutral'||e.def.kind==='golem'){e.angry=30;e.angryAt=src;}}}break;}
   case 'drop':if(o.d===CUR.id&&o.st&&IT[o.st.id]){const e=dropItem(o.x,o.y,o.z,o.st,o.v);if(e&&o.pk)e.pick=o.pk;}break;
@@ -6015,6 +6133,8 @@ function hostMsg(g,o){switch(o.k){
   case 'teget':hostTileGet(g,o);break;
   case 'teput':{const key=o.d+':'+o.x+','+o.y+','+o.z;const t=TILES.get(key);if(t&&o.te&&o.te.items)t.items=o.te.items;break;}
   case 'use':hostUse(g,o);break;
+  case 'pvp':hostPvp(g,o);break;
+  case 'dmsg':chatAll(String(o.t||'').slice(0,160),'#f99');break;
   case 'bye':g.p.close('вышел');break;}}
 /* чанки для гостя: изменённые — целиком, нетронутые — «генерируй сам» */
 function hostChunk(g,d,x,z){const key=GAME.wid+'|'+d+'|'+x+','+z,ck2=d+'|'+x+','+z;
@@ -6067,13 +6187,17 @@ function hostTick(dt){if(!NET.hosting)return;NET.t+=dt;
       g.p.send({k:'ents',d:CUR.id,L});g.hadEnts=true;}}
   /* игроки: хозяин + гости */
   NET.tPl+=dt;if(NET.tPl>=.1){NET.tPl=0;const all=[plRec(myNick(),CUR.id,PLAYER,SET.skin,selStack(),PLAYER.armor,PLAYER.mode,PLAYER.alive,PLAYER.swingT>.25)];
-    for(const g of NET.guests.values())all.push([g.nick,g.d,+g.x.toFixed(2),+g.y.toFixed(2),+g.z.toFixed(2),+g.yaw.toFixed(2),+g.pitch.toFixed(2),g.sn?1:0,g.sw?1:0,g.held?g.held.id:0,(g.armor||[]).map(s=>s?s.id:0),g.mode,g.alive?1:0,g.skin|0]);
+    for(const g of NET.guests.values())all.push([g.nick,g.d,+g.x.toFixed(2),+g.y.toFixed(2),+g.z.toFixed(2),+g.yaw.toFixed(2),+g.pitch.toFixed(2),g.sn?1:0,g.sw?1:0,g.held?g.held.id:0,(g.armor||[]).map(s=>s?s.id:0),g.mode,g.alive?1:0,g.skin|0,g.f|0,g.mb||0]);
     for(const g of NET.guests.values())g.p.send({k:'pl',L:all.filter(r=>nkey(r[0])!==g.k)});}
   /* время и погода */
-  NET.tTm+=dt;if(NET.tTm>=1){NET.tTm=0;for(const g of NET.guests.values())g.p.send({k:'tm',tod:GAME.tod,day:GAME.day,w:[WEATHER.rain,WEATHER.thunder,WEATHER.want,WEATHER.wantT],hd:CUR.id,diff:GAME.difficulty});}
+  NET.tTm+=dt;if(NET.tTm>=1){NET.tTm=0;for(const g of NET.guests.values())g.p.send({k:'tm',tod:GAME.tod,day:GAME.day,w:[WEATHER.rain,WEATHER.thunder,WEATHER.want,WEATHER.wantT],hd:CUR.id,diff:GAME.difficulty,pvp:NET.pvp?1:0});}
   /* гость давно молчит — отключаем */
   const now=performance.now();for(const g of [...NET.guests.values()])if(g.lastPos&&now-g.lastPos>25000)g.p.close('нет ответа');}
-function plRec(nick,d,p,skin,st,armor,mode,alive,sw){return [nick,d,+p.x.toFixed(2),+p.y.toFixed(2),+p.z.toFixed(2),+p.yaw.toFixed(2),+(p.pitch||0).toFixed(2),p.sneak?1:0,sw?1:0,st?st.id:0,(armor||[]).map(s=>s?s.id:0),mode,alive?1:0,skin|0];}
+function plRec(nick,d,p,skin,st,armor,mode,alive,sw){return [nick,d,+p.x.toFixed(2),+p.y.toFixed(2),+p.z.toFixed(2),+p.yaw.toFixed(2),+(p.pitch||0).toFixed(2),p.sneak?1:0,sw?1:0,st?st.id:0,(armor||[]).map(s=>s?s.id:0),mode,alive?1:0,skin|0,myFlags(),myMB()];}
+/* поза и добыча: 1 — плывёт, 2 — элитры, 4 — ползком, 8 — ломает блок */
+function myFlags(){const p=PLAYER;return (p.swimPose?1:0)|(p.glide?2:0)|(p.crawl&&!p.inW?4:0)|(p.breakP>0&&MOUSE.l?8:0);}
+function myMB(){const p=PLAYER,t=p.target;return p.breakP>0&&MOUSE.l&&t&&t.block?[t.x,t.y,t.z,Math.min(9,Math.floor(p.breakP*10))]:0;}
+function applyFlags(e,f,mb){f|=0;e.swimPose=!!(f&1);e.glide=!!(f&2);e.crawl=!!(f&4);e.mine=!!(f&8);e.mb=Array.isArray(mb)?mb:null;if(e.mine&&!(e.swingT>0))e.swingT=.3;}
 const ENT_PROJ=new Set(['arrow','trident','fireball','smallfire','snowball','egg','pearl','potion','shulker_bullet','wither_skull','dragon_fireball','llama_spit']);
 function encEnt(e){const r=v=>Math.round(v*100)/100;let fl=0;if(e.hurtT>0)fl|=1;if(e.dead)fl|=2;if(e.fire>0)fl|=4;if(e.baby)fl|=8;if(e.sheared)fl|=16;if(e.st&&e.st.sit)fl|=32;if(e.charged)fl|=64;if(e.tamed)fl|=128;
   const a=[e.id,e.t,r(e.x),r(e.y),r(e.z),r(e.yaw||0),r(e.headYaw===undefined?e.yaw||0:e.headYaw),r(e.headPitch||e.pitch||0),fl];
@@ -6085,7 +6209,16 @@ function netSnd(n,x,y,z,o){if(!NET.hosting||!NET.guests.size||x===undefined||(o&
 /* изменение блока у хозяина — в очередь рассылки */
 function netHostSet(d,x,y,z,id,m){if(!NET.guests.size)return;let L=NET.hSetQ.get(d);if(!L){L=[];NET.hSetQ.set(d,L);}L.push([d,x,y,z,id,m]);}
 /* урон, отброс, эффекты по гостю (его прокси у хозяина) */
-function netHurtProxy(e,amt,cause,src){const g=NET.guests.get(e.nk);if(!g)return false;if(src===PLAYER||(src&&src.owner===PLAYER))return false;/* друзья друг друга не бьют */g.p.send({k:'hurt',a:+amt.toFixed(2),c:cause,s:src?[+src.x.toFixed(2),+src.y.toFixed(2),+src.z.toFixed(2)]:null,st:src&&src.t?src.t:null,sn:src&&src.nick?src.nick:null});e.hurtT=.3;return true;}
+function netHurtProxy(e,amt,cause,src){const g=NET.guests.get(e.nk);if(!g)return false;const o=src&&src.owner&&src.owner.x!==undefined?src.owner:src;const pv=o===PLAYER||o&&o.t==='rplayer';
+  /* урон от другого игрока — только если включено PvP */if(pv){if(!NET.pvp||o===e||g.mode==='creative'||g.mode==='spectator'||!g.alive)return false;const now=performance.now();if(now-(e.pvpT||0)<450)return false;e.pvpT=now;}
+  const sn=o===PLAYER?myNick():o&&o.nick?o.nick:null;g.p.send({k:'hurt',a:+amt.toFixed(2),c:cause,s:src?[+src.x.toFixed(2),+src.y.toFixed(2),+src.z.toFixed(2)]:null,st:pv?null:src&&src.t?src.t:null,sn});e.hurtT=.3;if(pv)sfx('hurt',e.x,e.y,e.z);return true;}
+/* PvP: гость ударил игрока — хозяин решает, кому и сколько */
+function hostPvp(g,o){if(!NET.pvp||!g.ent||!g.alive)return;const dm=Math.min(40,Math.max(0,+o.dm||0)),kb=Math.min(12,Math.max(0,+o.kb||0));
+  if(o.t===nkey(myNick())){if(CUR.id!==g.d||distTo(PLAYER,g.ent)>7||!PLAYER.alive)return;if(damage(PLAYER,dm,'player',g.ent))knock(PLAYER,g.ent,kb);return;}
+  const tg=NET.guests.get(o.t);if(!tg||!tg.ent||tg===g||tg.d!==g.d||distTo(tg.ent,g.ent)>7)return;if(damage(tg.ent,dm,'player',g.ent))knock(tg.ent,g.ent,kb);}
+function netPvpHit(e,dm,kb){if(!NET.host||!NET.pvp||e.mode==='creative'||e.mode==='spectator')return false;NET.host.send({k:'pvp',t:e.nk,dm:+dm.toFixed(2),kb});e.hurtT=.3;sfx('hurt',e.x,e.y,e.z);return true;}
+function netSetPvp(on){SET.pvp=!!on;saveSet();if(NET.hosting){NET.pvp=SET.pvp;for(const g of NET.guests.values())g.p.send({k:'pvp_on',v:NET.pvp?1:0});chatAll('PvP '+(NET.pvp?'включено':'выключено'),'#ff8');}}
+function netSetGuestMode(m){SET.lanMode=m;saveSet();if(NET.hosting&&m!=='world')for(const g of NET.guests.values()){g.p.send({k:'gm',m});}}
 function netKnockProxy(e,dx,dz,k){const g=NET.guests.get(e.nk);if(!g)return;const l=Math.hypot(dx,dz)||1;g.p.send({k:'vel',vx:dx/l*k,vz:dz/l*k,vy:4.5});}
 function netEffProxy(e,k,sec,amp){const g=NET.guests.get(e.nk);if(g)g.p.send({k:'eff',e:k,t:sec,a:amp||0});}
 function netGive(e,st){const g=NET.guests.get(e.nk);if(!g)return false;g.p.send({k:'give',st});return true;}
@@ -6105,13 +6238,15 @@ function netJoin(nick){if(GAME.on){toast('Сначала выйдите из т�
   const fail=why=>{clearTimeout(NET.joinT);NET.joinCb=null;if(NET.host===p)NET.host=null;p.close('отмена');hideLoading();multiScreen();setTimeout(()=>toast(why),50);};
   NET.joinCb=fail;NET.joinT=setTimeout(()=>fail('Не удалось подключиться к '+nick+'. Возможно, ваша сеть не позволяет прямое соединение — см. «Настройки сети» (TURN).'),25000);}
 function guestMsg(o){switch(o.k){
-  case 'welcome':clearTimeout(NET.joinT);NET.joinCb=null;guestStart(o);break;
+  case 'welcome':clearTimeout(NET.joinT);NET.joinCb=null;NET.pvp=!!o.pvp;guestStart(o);break;
+  case 'pvp_on':NET.pvp=!!o.v;chatMsg('PvP '+(NET.pvp?'включено':'выключено'),'#ff8');break;
+  case 'gm':if(['survival','creative','adventure'].includes(o.m)){PLAYER.mode=o.m;if(o.m!=='creative')PLAYER.flyNow=false;UI.dirty=true;chatMsg('Режим игры: '+MODE_RU[o.m],'#8f8');}break;
   case 'bye':guestLost(o.why||'Хозяин закрыл мир');break;
   case 'chd':guestChunk(o);break;
   case 'sets':guestSets(o.L);break;
   case 'ents':guestEnts(o);break;
   case 'pl':guestPlayers(o.L);break;
-  case 'tm':GAME.tod=o.tod;GAME.day=o.day;[WEATHER.rain,WEATHER.thunder,WEATHER.want,WEATHER.wantT]=o.w;GAME.difficulty=o.diff;if(o.hd!==NET.hostDim){NET.hostDim=o.hd;guestAuthChange();}break;
+  case 'tm':GAME.tod=o.tod;GAME.day=o.day;[WEATHER.rain,WEATHER.thunder,WEATHER.want,WEATHER.wantT]=o.w;GAME.difficulty=o.diff;NET.pvp=!!o.pvp;if(o.hd!==NET.hostDim){NET.hostDim=o.hd;guestAuthChange();}break;
   case 'hurt':{const s=o.s?{x:o.s[0],y:o.s[1],z:o.s[2],t:o.st||'net',def:o.st&&MOBS[o.st]?MOBS[o.st]:(o.sn?{n:o.sn}:null)}:null;damage(PLAYER,o.a,o.c,s);break;}
   case 'vel':{const p=PLAYER;p.vx+=o.vx;p.vz+=o.vz;p.vy=Math.max(p.vy,o.vy);break;}
   case 'eff':addEffect(PLAYER,o.e,o.t,o.a);break;
@@ -6128,7 +6263,7 @@ function guestStart(W){NET.guest=true;NET.hostNick=W.host;NET.hostDim=W.hostDim;
   resetPlayer();ENTS.length=0;TILES.clear();DRAGON=null;GAME.boss=null;PARTS.length=0;SCHED.clear();
   GAME.tod=W.tod;GAME.day=W.day;GAME.time=0;GAME.spawn=W.spawn;GAME.ach={};GAME.pop=DIMS.map(()=>new Set());GAME.dimEnts=DIMS.map(()=>[]);GAME.brPrev=GAME.brFrom=null;GAME.brInv=null;GAME.dragonKilled=false;GAME.enchSeed=1;
   Object.assign(WEATHER,W.weather);for(const k in STATS)STATS[k]=0;
-  if(W.ps){const d=W.ps.dim||0;Object.assign(PLAYER,W.ps);delete PLAYER.dim;CUR=DIMS[d];GAME.brPrev=W.ps.brPrev||null;GAME.brFrom=W.ps.brFrom||null;GAME.brInv=W.ps.brInv||null;}
+  if(W.ps){const d=W.ps.dim||0;Object.assign(PLAYER,W.ps);delete PLAYER.dim;CUR=DIMS[d];GAME.brPrev=W.ps.brPrev||null;GAME.brFrom=W.ps.brFrom||null;GAME.brInv=W.ps.brInv||null;if(W.fm)PLAYER.mode=W.mode;}
   else{CUR=DIMS[0];PLAYER.mode=W.mode;PLAYER.x=W.spawn[0];PLAYER.y=W.spawn[1]+.5;PLAYER.z=W.spawn[2];PLAYER.yaw=Math.random()*TAU;}
   for(const D of DIMS){for(const c of D.chunks.values())freeMesh(c);D.chunks.clear();D.pending.clear();}resetCache();
   GAME.changing=true;GAME.on=true;GAME.paused=false;
@@ -6180,14 +6315,14 @@ function netGhostUpd(e,dt){const k=Math.min(1,dt*12);if(e.tx===undefined){e.tx=e
   if(e.hurtT>0)e.hurtT-=dt;if(e.swing>0)e.swing-=dt;if(e.t==='item')e.spin=(e.spin||0)+dt*1.5;if(e.t==='tnt'&&e.fuse>0)e.fuse-=dt;
   if(e.lastSeen&&performance.now()-e.lastSeen>3000)e.gone=true;}
 /* другие игроки у гостя */
-function guestPlayers(L){const seen=new Set();for(const r of L){const [nick,d,x,y,z,yw,pt,sn,sw,held,armor,mode,alive,skin]=r;const k=nkey(nick);
+function guestPlayers(L){const seen=new Set();for(const r of L){const [nick,d,x,y,z,yw,pt,sn,sw,held,armor,mode,alive,skin,fl,mb]=r;const k=nkey(nick);
     if(d!==CUR.id)continue;seen.add(k);let e=NET.others.get(k);if(!e){e=new Ent('rplayer',x,y,z);e.nick=nick;e.nk=k;e.w=.6;e.h=1.8;e.eyeH=1.62;e.effects={};ENTS.push(e);NET.others.set(k,e);}
-    if(ENTS.indexOf(e)<0)ENTS.push(e);e.tx=x;e.ty=y;e.tz=z;e.yaw=yw;e.pitch=pt;e.sneak=!!sn;if(sw)e.swingT=.3;e.held=held&&IT[held]?{id:held,n:1}:null;e.armor=(armor||[]).map(id=>id&&IT[id]?{id,n:1}:null);e.mode=mode;e.alive=!!alive;e.skin=skin|0;e.lastSeen=performance.now();}
+    if(ENTS.indexOf(e)<0)ENTS.push(e);e.tx=x;e.ty=y;e.tz=z;e.yaw=yw;e.pitch=pt;e.sneak=!!sn;if(sw)e.swingT=.3;e.held=held&&IT[held]?{id:held,n:1}:null;e.armor=(armor||[]).map(id=>id&&IT[id]?{id,n:1}:null);e.mode=mode;e.alive=!!alive;e.skin=skin|0;applyFlags(e,fl,mb);e.lastSeen=performance.now();}
   for(const [k,e] of NET.others)if(!seen.has(k)){NET.others.delete(k);const i=ENTS.indexOf(e);if(i>=0)ENTS.splice(i,1);nameTagDrop(k);}}
 function rplayerUpd(e,dt){const ox=e.x,oz=e.z;if(e.tx===undefined){e.tx=e.x;e.ty=e.y;e.tz=e.z;}const k=Math.min(1,dt*14);
   if(Math.abs(e.tx-e.x)+Math.abs(e.tz-e.z)+Math.abs(e.ty-e.y)>10){e.x=e.tx;e.y=e.ty;e.z=e.tz;}else{e.x+=(e.tx-e.x)*k;e.y+=(e.ty-e.y)*k;e.z+=(e.tz-e.z)*k;}
   const hv=Math.hypot(e.x-ox,e.z-oz)/Math.max(dt,1e-3);e.bob=(e.bob||0)+hv*dt*2.2;e.bobAmp=(e.bobAmp||0)+(Math.min(1,hv/4.3)-(e.bobAmp||0))*Math.min(1,dt*8);
-  if(e.swingT>0)e.swingT-=dt;if(e.hurtT>0)e.hurtT-=dt;}
+  if(e.swingT>0)e.swingT-=dt;else if(e.mine)e.swingT=.3;if(e.hurtT>0)e.hurtT-=dt;}
 /* удар по призраку (моб у хозяина) */
 function netHitGhost(e,amt,src){if(!NET.host)return false;const st=selStack();const fa=enchLvl(st,'fire_aspect');const kb=(PLAYER.sprint?6:3.5)+enchLvl(st,'knockback')*3;
   NET.host.send({k:'hit',i:e.nid,dm:+amt.toFixed(2),kb,fa:fa?4*fa:0});e.hurtT=.3;if(e.def)sfx(e.def.snd||'hurt_mob',e.x,e.y,e.z,{pitch:1.1});return true;}
@@ -6201,7 +6336,7 @@ function netGuestDrop(x,y,z,st,vel){if(!NET.host||!st||!st.n)return;NET.host.sen
 function netGuestXP(x,y,z,v){if(NET.host)NET.host.send({k:'sxp',d:CUR.id,x,y,z,v});}
 function netGuestUse(e,st){if(!NET.host)return false;NET.host.send({k:'use',i:e.nid,it:st?st.id:0});PLAYER.swingT=.3;return true;}
 function guestTick(dt){if(!NET.guest||!NET.host)return;const p=PLAYER;
-  NET.tPos+=dt;if(NET.tPos>=.07){NET.tPos=0;NET.host.send({k:'pos',d:CUR.id,x:+p.x.toFixed(2),y:+p.y.toFixed(2),z:+p.z.toFixed(2),yw:+p.yaw.toFixed(3),pt:+p.pitch.toFixed(3),sn:p.sneak?1:0,sw:p.swingT>.25?1:0,h:(selStack()||{}).id||0,a:p.armor.map(s=>s?s.id:0),mo:p.mode,al:p.alive?1:0,sk:SET.skin|0});}
+  NET.tPos+=dt;if(NET.tPos>=.07){NET.tPos=0;NET.host.send({k:'pos',d:CUR.id,x:+p.x.toFixed(2),y:+p.y.toFixed(2),z:+p.z.toFixed(2),yw:+p.yaw.toFixed(3),pt:+p.pitch.toFixed(3),sn:p.sneak?1:0,sw:p.swingT>.25?1:0,h:(selStack()||{}).id||0,a:p.armor.map(s=>s?s.id:0),mo:p.mode,al:p.alive?1:0,sk:SET.skin|0,f:myFlags(),mb:myMB()});}
   if(NET.setQ.length){for(let i=0;i<NET.setQ.length;i+=400)NET.host.send({k:'sets',L:NET.setQ.slice(i,i+400)});NET.setQ.length=0;}
   NET.tPst+=dt;if(NET.tPst>=10){NET.tPst=0;NET.host.send({k:'pst',ps:guestPS()});}}
 /* общий тик сети (вызывается каждый кадр) */
@@ -6269,7 +6404,7 @@ function netSettings(){MULTI_ON=false;menu(`<div class="panel"><h2>Настро�
   bindMenu({back:multiScreen,save:()=>{SET.netSrv=$('nsrv').value.trim();SET.netKey=$('nkey').value.trim();SET.turnUrl=$('nturn').value.trim();SET.turnUser=$('nturnu').value.trim();SET.turnPass=$('nturnp').value;saveSet();NET.noRetry=false;if(nickOk(SET.nick))netConnect();multiScreen();}});}
 /* при запуске игры сразу выходим в сеть, чтобы друзья видели нас и заявки доходили */
 setTimeout(()=>{netInit();if(nickOk(SET.nick))netConnect();},1500);
-addEventListener('beforeunload',()=>{try{if(NET.guest&&NET.host){NET.host.send({k:'pst',ps:guestPS()});NET.host.send({k:'bye'});}if(NET.hosting)for(const g of NET.guests.values())g.p.send({k:'bye',why:'Хозяин вышел из игры'});}catch(e){}});
+addEventListener('pagehide',()=>{try{if(NET.guest&&NET.host){NET.host.send({k:'pst',ps:guestPS()});NET.host.send({k:'bye'});}if(NET.hosting)for(const g of NET.guests.values())g.p.send({k:'bye',why:'Хозяин вышел из игры'});}catch(e){}});
 /* ============================================================
    СВОИ СКИНЫ (формат оригинала): загрузка, перевод старого 64×32 в 64×64, раскраска модели
    ============================================================ */
@@ -6491,19 +6626,22 @@ function updEntities(dt){for(let i=ENTS.length-1;i>=0;i--){const e=ENTS[i];
 /* ---------- ввод ---------- */
 function lockPointer(){if(!GAME.on||UI.open||CHAT.open||GAME.paused||GAME.deadScreen||GAME.credits||TOUCH.on)return;try{const r=cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{});}catch(e){}}
 document.addEventListener('pointerlockchange',()=>{GAME.locked=document.pointerLockElement===cv;if(!GAME.locked&&GAME.on&&!UI.open&&!CHAT.open&&!GAME.paused&&!GAME.deadScreen&&!GAME.credits&&!GAME.changing&&!TOUCH.on)pauseScreen();});
-cv.addEventListener('mousedown',e=>{SND.resume();if(!GAME.on||GAME.paused)return;if(!GAME.locked){lockPointer();return;}if(e.button===0){MOUSE.l=true;MOUSE.lClick=true;}else if(e.button===2){MOUSE.r=true;MOUSE.rClick=true;}else if(e.button===1)pickBlock();e.preventDefault();});
+cv.addEventListener('mousedown',e=>{SND.resume();if(!GAME.on||GAME.paused)return;if(!GAME.locked){if(SET.autoFs!==false&&!TOUCH.on&&!IS_TOUCH)enterFullscreen(false);lockPointer();kbLock();return;}if(e.button===0){MOUSE.l=true;MOUSE.lClick=true;}else if(e.button===2){MOUSE.r=true;MOUSE.rClick=true;}else if(e.button===1)pickBlock();e.preventDefault();});
 addEventListener('mouseup',e=>{if(e.button===0)MOUSE.l=false;else if(e.button===2)MOUSE.r=false;});
 addEventListener('contextmenu',e=>{if(GAME.on)e.preventDefault();});
 addEventListener('mousemove',e=>{if(!GAME.locked||!GAME.on||GAME.paused)return;const k=SET.sens/100*.0022;PLAYER.yaw-=e.movementX*k;PLAYER.pitch=clamp(PLAYER.pitch-e.movementY*k,-1.5707,1.5707);});
 addEventListener('wheel',e=>{if(!GAME.on||UI.open||!GAME.locked)return;PLAYER.sel=(PLAYER.sel+(e.deltaY>0?1:-1)+9)%9;PLAYER.equipT=.25;UI.dirty=true;},{passive:true});
 function pickBlock(){const t=PLAYER.target;if(!t||!t.block)return;const id=t.id;const i=PLAYER.inv.findIndex((s,j)=>j<9&&s&&s.id===id);if(i>=0){PLAYER.sel=i;}else if(PLAYER.mode==='creative'){PLAYER.inv[PLAYER.sel]={id,n:IT[id]?IT[id].stack:64};}UI.dirty=true;}
 addEventListener('pointerdown',()=>SND.resume(),true);addEventListener('keydown',e=>{SND.resume();if(e.code==='F11'){e.preventDefault();toggleFullscreen();return;}const c=e.code;
-  if(CHAT.open){if(c==='Enter'){const v=$('chatin').value.trim();if(v){if(v.startsWith('/'))runCommand(v);else sayChat(v);}closeChat();e.preventDefault();}else if(c==='Escape'){closeChat();e.preventDefault();}return;}
+  if(CHAT.open){if(c==='Enter'||c==='NumpadEnter'){chatSubmit();e.preventDefault();}else if(c==='Escape'){closeChat();e.preventDefault();}return;}
   if(document.activeElement&&(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT')&&c!=='Escape')return;
   if(/^F\d+$/.test(c)||c==='Space'||c==='Tab')e.preventDefault();
   if(!GAME.on){return;}
+  /* в игре браузерные сочетания с Ctrl (сохранить, закладка, поиск, печать…) не срабатывают */
+  if((e.ctrlKey||e.metaKey)&&!UI.open&&!GAME.paused&&c!=='KeyV'&&c!=='KeyC')e.preventDefault();
+  if((c==='ControlLeft'||c==='ControlRight')&&(SET.keys.sprint===c)&&!document.fullscreenElement&&!TOUCH.on&&!GAME.ctrlHint){GAME.ctrlHint=true;toast('Совет: Ctrl+W в браузере закрывает вкладку. Включите полный экран (F11) — там Ctrl работает как бег без проблем. Бежать можно и двойным нажатием W.');}
   if(GAME.credits)return;
-  if(c==='Escape'){e.preventDefault();if(UI.open){closeUI();return;}if(GAME.deadScreen)return;if(GAME.paused&&!GAME.credits){resumeGame();return;}pauseScreen();return;}
+  if(c==='Escape'){e.preventDefault();if(UI.open){closeUI();return;}if(GAME.deadScreen)return;if(GAME.paused&&!GAME.credits){if(performance.now()-(GAME.pauseAt||0)<400)return;resumeGame();return;}pauseScreen();return;}
   if(GAME.paused||GAME.deadScreen)return;
   if(UI.open){if(c===SET.keys.inventory){closeUI();}else if(/^Digit[1-9]$/.test(c)){const el=document.querySelector('#ui .slot:hover');if(el&&el.dataset.a&&el.dataset.a!=='cr'&&el.dataset.a!=='out'){const arr=getArr(el.dataset.a);const i=+el.dataset.i,h=+c.slice(5)-1;if(arr){const t=arr[i];arr[i]=PLAYER.inv[h];PLAYER.inv[h]=t;renderUI();}}}else if(c===SET.keys.drop){const el=document.querySelector('#ui .slot:hover');if(el&&el.dataset.a){const arr=getArr(el.dataset.a);const s=arr&&arr[+el.dataset.i];if(s){const n=e.ctrlKey?s.n:1;dropItem(PLAYER.x,PLAYER.y+1.3,PLAYER.z,Object.assign({},s,{n}),lookVec().map(v=>v*4));s.n-=n;if(!s.n)arr[+el.dataset.i]=null;renderUI();}}}return;}
   KEYS.add(c);
@@ -6557,7 +6695,7 @@ async function boot(){applyOrient();showLoading('Создание текстур
     if((ok>=tot||performance.now()-tp>60000)&&!built67){built67=true;try{build67(eye);}catch(e){console.error(e);}setTimeout(wait,100);return;}
     if(ok>=tot||performance.now()-tp>60000){capturePanorama(eye);PANO_BUILD=false;stopWorld();if(WORKER){WORKER.terminate();WORKER=null;}hideLoading();titleScreen();prewarmIcons();setFavicon();}else setTimeout(wait,100);};wait();
   requestAnimationFrame(loop);
-  $('chatin').addEventListener('keydown',e=>{e.stopPropagation();if(e.code==='Enter'){const v=$('chatin').value.trim();if(v){if(v.startsWith('/'))runCommand(v);else sayChat(v);}closeChat();e.preventDefault();}else if(e.code==='Escape'){closeChat();e.preventDefault();}});}
+  chatInit();}
 boot();
 
 </script>
