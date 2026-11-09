@@ -2152,6 +2152,7 @@ function runSched(){if(!SCHED.size)return;const due=[];for(const [k,e] of SCHED)
 function blockTick(x,y,z,kind){if(!loadedAt(x,z))return;const id=getB(x,y,z),d=BL[id];
   if(kind==='liq'&&d.liquid)liquidTick(x,y,z,id);
   else if(kind==='fall'&&d.grav)checkFall(x,y,z,id);
+  else if(kind==='fire')fireTick(x,y,z);
   else if(kind==='rs')redstoneTick(x,y,z,id);
   else if(kind==='obs'&&id===BK.observer){const m=getM(x,y,z);if(!(m&8)){setB(x,y,z,id,m|8,NOUPD);obsOut(x,y,z,m);sched(x,y,z,2,'obsoff');}}
   else if(kind==='obsoff'&&id===BK.observer){const m=getM(x,y,z);setB(x,y,z,id,m&7,NOUPD);obsOut(x,y,z,m);}
@@ -2193,11 +2194,11 @@ function neighborUpdate(x,y,z){if(y<0||y>=CH)return;const id=getB(x,y,z);if(!id)
   if(d.shape==='door'&&(m&8)&&getB(x,y-1,z)!==id){setB(x,y,z,0);return;}
   if(d.bed){const f=m&3,v=F4[f],s=(m&4)?-1:1;if(getB(x+v[0]*s,y,z+v[2]*s)!==id){setB(x,y,z,0);return;}}
   if(d.powder){for(let k=0;k<6;k++)if(BL[getB(x+DX[k],y+DY[k],z+DZ[k])].liquid==='water'&&k!==3){setB(x,y,z,BK[d.powder]);return;}}
-  if(id===BK.fire||id===BK.soul_fire){if(!SOLIDB[getB(x,y-1,z)]&&!flammableAround(x,y,z)){setB(x,y,z,0);return;}}
+  if(id===BK.fire||id===BK.soul_fire){if(!fireOk(x,y,z,id===BK.soul_fire)){setB(x,y,z,0);return;}}
   if(id===BK.nether_portal){if(!portalIntact(x,y,z,m&1)){setB(x,y,z,0);return;}}
   if(id===BK.sponge){absorb(x,y,z);}
   if(id===BK.redstone_wire||d.power||d.piston||id===BK.redstone_lamp||id===BK.redstone_lamp_on||d.tnt||d.door||d.shape==='trapdoor'||d.shape==='gate'||id===BK.dispenser||id===BK.dropper||id===BK.repeater||id===BK.comparator||id===BK.redstone_torch||id===BK.redstone_torch_off||id===BK.powered_rail||id===BK.hopper)sched(x,y,z,1,'rs');}
-function flammableAround(x,y,z){for(let k=0;k<6;k++)if(BL[getB(x+DX[k],y+DY[k],z+DZ[k])].flam)return true;return false;}
+function flammableAround(x,y,z){return fireLocOk(x,y,z);}
 function portalIntact(x,y,z,ax){const ok=id=>id===BK.obsidian||id===BK.nether_portal;const dx=ax?0:1,dz=ax?1:0;
   return ok(getB(x,y+1,z))&&ok(getB(x,y-1,z))&&ok(getB(x+dx,y,z+dz))&&ok(getB(x-dx,y,z-dz));}
 function absorb(x,y,z){let n=0;const q=[[x,y,z,0]];const seen=new Set();while(q.length&&n<64){const [a,b,c,dd]=q.shift();for(let k=0;k<6;k++){const nx=a+DX[k],ny=b+DY[k],nz=c+DZ[k];const key=pk(nx,ny,nz);if(seen.has(key))continue;seen.add(key);
@@ -2264,20 +2265,64 @@ function rtick(x,y,z,id,m,c,i){const K=BK,d=BL[id],R=Math.random;
   if(d.sapling){if(lightLv(x,y+1,z)>=9&&R()<.14)growTree(x,y,z,d.sapling);return;}
   if((id===K.sugar_cane||id===K.cactus||id===K.bamboo||id===K.kelp)&&getB(x,y+1,z)===0+(id===K.kelp?K.water:0)){let h=1;while(getB(x,y-h,z)===id)h++;if(h<(id===K.bamboo?12:id===K.kelp?10:3)&&R()<.25){if(id!==K.kelp||BL[getB(x,y+1,z)].liquid==='water')setB(x,y+1,z,id);}return;}
   if(d.leaf&&!(m&1)){if(Math.random()<.2&&!logNear(x,y,z)){breakBlock(x,y,z,true);}return;}/* проверка дорогая — делаем её реже */
-  if(id===K.fire||id===K.soul_fire){fireTick(x,y,z,m);return;}
+  if(id===K.fire){if(!SCHED.has(pk(x,y,z)))fireSched(x,y,z);return;}/* огонь живёт на своих тиках; случайный тик лишь «будит» старый огонь после загрузки */
   if(id===K.ice&&getBl(x,y,z)>11){setB(x,y,z,K.water);return;}
   if(id===K.snow&&getBl(x,y,z)>11){setB(x,y,z,0);return;}
   if(d.ox&&R()<.02){setB(x,y,z,K[d.ox]);return;}
-  if(id===K.lava&&CUR.id===0&&R()<.1){const nx=x+((R()*5)|0)-2,ny=y+1+((R()*2)|0),nz=z+((R()*5)|0)-2;if(getB(nx,ny,nz)===0&&flammableAround(nx,ny,nz))setB(nx,ny,nz,K.fire);return;}
+  if(id===K.lava){/* лава поджигает, как в оригинале: вверх на 1–2 блока со смещением, либо горючий блок рядом на её уровне */const i=(R()*3)|0;
+    if(i>0){let bx=x,by=y,bz=z;for(let j=0;j<i;j++){bx+=((R()*3)|0)-1;by++;bz+=((R()*3)|0)-1;if(by>=CH||!loadedAt(bx,bz))return;const b=getB(bx,by,bz);if(b===0){if(fireLocOk(bx,by,bz)){setB(bx,by,bz,K.fire);return;}}else if(SOLIDB[b])return;}}
+    else for(let k=0;k<3;k++){const bx=x+((R()*3)|0)-1,bz=z+((R()*3)|0)-1;if(!loadedAt(bx,bz))return;if(getB(bx,y+1,bz)===0&&FIGN[getB(bx,y,bz)])setB(bx,y+1,bz,K.fire);}return;}
   if(id===K.water&&WEATHER.temp<0){}}
 function logNear(x,y,z){const q=[[x,y,z,0]],seen=new Set([pk(x,y,z)]);let qi=0;while(qi<q.length){const [a,b,c,dd]=q[qi++];for(let k=0;k<6;k++){const nx=a+DX[k],ny=b+DY[k],nz=c+DZ[k];const key=pk(nx,ny,nz);if(seen.has(key))continue;seen.add(key);
   if(!loadedAt(nx,nz))return true;/* сосед не загружен — не рубим листву на краю */const id=getB(nx,ny,nz);if(BL[id].log)return true;if(BL[id].leaf&&dd<6)q.push([nx,ny,nz,dd+1]);}}return false;}
-function fireTick(x,y,z,m){const R=Math.random,below=getB(x,y-1,z);const inf=below===BK.netherrack||below===BK.magma_block||(below===BK.bedrock&&CUR.id===2);
-  if(!inf&&WEATHER.rain>.5&&getSky(x,y,z)>=14&&R()<.5){setB(x,y,z,0);return;}
-  if(!inf&&(m>=15||(!flammableAround(x,y,z)&&!SOLIDB[below])||(!flammableAround(x,y,z)&&m>3&&R()<.25))){setB(x,y,z,0);return;}
-  setB(x,y,z,getB(x,y,z),Math.min(15,m+1+((R()*3)|0)),NOUPD);
-  for(let k=0;k<6;k++){const nx=x+DX[k],ny=y+DY[k],nz=z+DZ[k];const n=getB(nx,ny,nz),nd=BL[n];if(nd.flam&&R()*300<nd.flam){if(nd.tnt){setB(nx,ny,nz,0);spawnTNT(nx,ny,nz,40);}else setB(nx,ny,nz,R()<.6?BK.fire:0);}}
-  for(let t=0;t<2;t++){const nx=x+((R()*3)|0)-1,ny=y+((R()*4)|0)-1,nz=z+((R()*3)|0)-1;if(getB(nx,ny,nz)===0&&flammableAround(nx,ny,nz)&&R()<.3)setB(nx,ny,nz,BK.fire);}}
+/* ---------- огонь — по правилам оригинала ----------
+   у каждого блока два числа: насколько легко он поджигается от соседнего огня (FIGN) и насколько быстро сгорает (FBURN).
+   Огонь «тикает» каждые 30–39 тиков (1,5–2 с), стареет (0…15), распространяется на 1 блок в стороны/вниз и до 4 вверх,
+   гаснет под дождём, без горючих соседей и без опоры; на незераке и магме горит вечно; огонь душ не распространяется. */
+const FIGN=new Uint8Array(NB),FBURN=new Uint8Array(NB);
+(function(){const set=(d,i,b)=>{FIGN[d.id]=i;FBURN[d.id]=b;};
+  for(const d of BL){if(!d)continue;const k=d.k;
+    if(/(^|_)(log|wood)$/.test(k)&&d.flam)set(d,5,5);
+    else if(/_(planks|slab|stairs|fence|fence_gate)$/.test(k)&&d.flam)set(d,5,20);
+    else if(/leaves$/.test(k))set(d,30,60);
+    else if(/_wool$/.test(k))set(d,30,60);
+    else if(/_carpet$/.test(k))set(d,60,20);
+    else if(k==='bookshelf'||k==='lectern'||k==='bee_nest')set(d,30,20);
+    else if(k==='tnt')set(d,15,100);
+    else if(k==='vine'||k==='glow_lichen')set(d,15,100);
+    else if(k==='hay_block')set(d,60,20);
+    else if(k==='coal_block')set(d,5,5);
+    else if(k==='dried_kelp_block')set(d,30,60);
+    else if(k==='bamboo'||k==='scaffolding')set(d,60,60);
+    else if(k==='target')set(d,15,20);
+    else if(k==='composter'||k==='beehive')set(d,5,20);
+    else if(k==='br_crate')set(d,5,20);
+    else if(d.flam&&(d.shape==='cross'||d.shape==='double'||d.shape==='tall'||d.flower||d.plant))set(d,60,100);}})();
+function fireLocOk(x,y,z){for(let k=0;k<6;k++)if(FIGN[getB(x+DX[k],y+DY[k],z+DZ[k])])return true;return false;}
+function sturdyTop(b){const d=BL[b];return !!b&&(OCCB[b]===1||SOLIDB[b]&&(d.shape==='cube'||d.shape==='farm'));}
+function fireOk(x,y,z,soul){const b=getB(x,y-1,z);if(soul)return b===BK.soul_sand||b===BK.soul_soil;return sturdyTop(b)||fireLocOk(x,y,z);}
+function igniteOdds(x,y,z){if(getB(x,y,z)!==0)return 0;let m=0;for(let k=0;k<6;k++)m=Math.max(m,FIGN[getB(x+DX[k],y+DY[k],z+DZ[k])]);return m;}
+function rainAt(x,y,z){if(CUR.id!==0||WEATHER.rain<.5||getSky(x,y,z)<15)return false;const k=BIOMES[biomeAt(x,z)].k;return !/desert|savanna|badlands|snow|ice|frozen/.test(k);}
+function nearRain(x,y,z){return rainAt(x,y,z)||rainAt(x-1,y,z)||rainAt(x+1,y,z)||rainAt(x,y,z-1)||rainAt(x,y,z+1);}
+function fireHumid(x,z){if(CUR.id!==0)return false;return /jungle|swamp|mushroom/.test(BIOMES[biomeAt(x,z)].k);}
+function fireSched(x,y,z){sched(x,y,z,30+((Math.random()*10)|0),'fire');}
+function burnOut(x,y,z,chance,age){const R=Math.random,b=getB(x,y,z),i=FBURN[b];if(!i||(R()*chance|0)>=i)return;
+  if(BL[b].tnt){setB(x,y,z,0);spawnTNT(x+.5,y,z+.5,40+((R()*20)|0));return;}
+  if((R()*(age+10)|0)<5&&!nearRain(x,y,z))setB(x,y,z,BK.fire,Math.min(15,age+(((R()*5)|0)/4|0)));else setB(x,y,z,0);}
+function fireTick(x,y,z){const id=getB(x,y,z);if(id!==BK.fire&&id!==BK.soul_fire)return;const R=Math.random;
+  if(!fireOk(x,y,z,id===BK.soul_fire)){setB(x,y,z,0);return;}if(id===BK.soul_fire)return;/* огонь душ не стареет и не распространяется */
+  fireSched(x,y,z);
+  const below=getB(x,y-1,z),inf=below===BK.netherrack||below===BK.magma_block||(below===BK.bedrock&&CUR.id===2);
+  let age=getM(x,y,z)&15;
+  if(!inf&&nearRain(x,y,z)&&R()<.2+age*.03){setB(x,y,z,0);return;}
+  const na=Math.min(15,age+(((R()*3)|0)/2|0));if(na!==age){setB(x,y,z,id,na,NOUPD|NOLIGHT);age=na;}
+  if(!inf){if(!fireLocOk(x,y,z)){if(!sturdyTop(below)||age>3)setB(x,y,z,0);return;}
+    if(age===15&&R()<.25&&!FIGN[below]){setB(x,y,z,0);return;}}
+  const humid=fireHumid(x,z),hk=humid?-50:0;
+  burnOut(x+1,y,z,300+hk,age);burnOut(x-1,y,z,300+hk,age);burnOut(x,y-1,z,250+hk,age);burnOut(x,y+1,z,250+hk,age);burnOut(x,y,z-1,300+hk,age);burnOut(x,y,z+1,300+hk,age);
+  for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++)for(let dy=-1;dy<=4;dy++){if(!dx&&!dy&&!dz)continue;const nx=x+dx,ny=y+dy,nz=z+dz;if(ny<1||ny>=CH||!loadedAt(nx,nz))continue;
+    const l=dy>1?100+(dy-1)*100:100;const m=igniteOdds(nx,ny,nz);if(m<=0)continue;let n=((m+40+GAME.difficulty*7)/(age+30))|0;if(humid)n=(n/2)|0;
+    if(n>0&&(R()*l|0)<=n&&!nearRain(nx,ny,nz))setB(nx,ny,nz,BK.fire,Math.min(15,age+(((R()*5)|0)/4|0)));}}
 function growTree(x,y,z,w){const types={oak:'oak',birch:'birch',spruce:'spruce',jungle:'jungle',acacia:'acacia',dark_oak:'dark_oak',mangrove:'mangrove',cherry:'cherry',crimson:'crimson',warped:'warped'};
   for(let k=1;k<6;k++){const b=getB(x,y+k,z);if(b&&!BL[b].leaf&&!BL[b].rep)return false;}
   setB(x,y,z,0);const S=(xx,yy,zz,id,meta,mode)=>{const c=getB(xx,yy,zz);if(mode===1&&c&&!BL[c].rep)return;if(mode===2&&c&&BL[c].opaque&&!BL[c].leaf)return;setB(xx,yy,zz,id,meta||0);};
@@ -2368,7 +2413,7 @@ function pistonUpdate(x,y,z,id,m){const f=m&7,ext=!!(m&8),p=powerAt(x,y,z)>0;con
   else if(!p&&ext){const hx=x+v[0],hy=y+v[1],hz=z+v[2];if(getB(hx,hy,hz)===BK.piston_head)setB(hx,hy,hz,0,0,NOUPD);setB(x,y,z,id,m&7,NOUPD);
     if(BL[id].piston===2){const tx=hx+v[0],ty=hy+v[1],tz=hz+v[2];const b=getB(tx,ty,tz);if(b&&movable(b)&&!BL[b].liquid&&!BL[b].rep){const bm=getM(tx,ty,tz);setB(tx,ty,tz,0);setB(hx,hy,hz,b,bm);}}
     neighborUpdate(hx,hy,hz);sfx('piston',x,y,z);}}
-function onReplaced(x,y,z,o,n){const od=BL[o];if(od.ui&&od.ui!=='craft'&&od.ui!=='enchant'&&od.ui!=='anvil'&&od.ui!=='smith'&&(BL[n].ui!==od.ui))removeTile(x,y,z,true);
+function onReplaced(x,y,z,o,n){if(n===BK.fire)fireSched(x,y,z);const od=BL[o];if(od.ui&&od.ui!=='craft'&&od.ui!=='enchant'&&od.ui!=='anvil'&&od.ui!=='smith'&&(BL[n].ui!==od.ui))removeTile(x,y,z,true);
   if(od.piston&&(getM(x,y,z)&8)===0){}
   if(o===BK.piston_head&&n===0){}}
 
@@ -3032,7 +3077,8 @@ function liquidState(e){let w=false,l=false,head=false,web=false,climb=false,sou
     const id=getB(bx,by,bz);if(!id)continue;const d=BL[id];
     if(d.liquid||d.wet||d.shape==='slab'&&(getM(bx,by,bz)&16)){let top=by+1;if(d.liquid){const m=getM(bx,by,bz);if(!(m&8)&&getB(bx,by+1,bz)!==id)top=by+((m&7)?(8-(m&7))/9:.9);}
       if(e.y<top){if(d.liquid==='lava')l=true;else w=true;}if(!d.liquid||d.liquid==='water'){const ey=e.y+(e.eye||e.h*.85);if(ey>=by&&ey<top)head=true;}}
-    if(d.web)web=true;if(d.climb)climb=true;if(d.portal)portal=d.portal;if(d.hot&&id!==BK.magma_block&&id!==BK.campfire)hot=true;}
+    if(d.web)web=true;if(d.climb)climb=true;if(d.portal)portal=d.portal;if(d.hot&&id!==BK.magma_block&&id!==BK.campfire){hot=true;if(id===BK.soul_fire)e.hotSoul=true;}}
+  if(!hot)e.hotSoul=false;
   const below=getB(Math.floor(e.x),Math.floor(e.y-.05),Math.floor(e.z));if(BL[below].soul)soul=true;if(BL[below].slip)slip=true;if(below===BK.magma_block||below===BK.campfire)e.onMagma=true;else e.onMagma=false;
   if(below===BK.cactus)hot=hot;e.inW=w;e.inL=l;e.headW=head;e.web=web;e.climb=climb;e.soul=soul;e.portalIn=portal;e.hotIn=hot;e.slip=slip;}
 function physStep(e,dt){liquidState(e);
@@ -3114,7 +3160,7 @@ function spawnTNT(x,y,z,fuse){const e=new Ent('tnt',x+.5,y,z+.5);e.fuse=fuse/20;
 function updTNT(e,dt){physStep(e,dt);e.fuse-=dt;if(Math.random()<.5)spawnParticles('smoke',e.x,e.y+1,e.z,1);if(e.fuse<=0){e.dead=true;explode(e.x,e.y+.5,e.z,4,false,e);}}
 /* ---------- молния ---------- */
 function lightning(x,z){const y=topY(x,z)+1;const e=new Ent('bolt',x+.5,y,z+.5);e.noGrav=true;e.life=.6;e.seed=Math.random()*1e6;ENTS.push(e);sfx('thunder',x,y,z);flashSky();
-  if(getB(x,y,z)===0&&SOLIDB[getB(x,y-1,z)]&&GAME.difficulty>0)setB(x,y,z,BK.fire);
+  if(getB(x,y,z)===0&&fireOk(x,y,z,false)&&GAME.difficulty>=2)setB(x,y,z,BK.fire);
   for(const o of ENTS.concat([PLAYER]))if((o.def||o===PLAYER)&&Math.hypot(o.x-e.x,o.z-e.z)<3){damage(o,5,'lightning');o.fire=8;if(o.t==='creeper')o.charged=true;if(o.t==='pig'){replaceMob(o,'zombified_piglin');}if(o.t==='villager')replaceMob(o,'witch');}}
 function topY(x,z){for(let y=CH-1;y>0;y--){const id=getB(x,y,z);if(id&&(SOLIDB[id]||BL[id].liquid))return y;}return 0;}
 /* ---------- снаряды ---------- */
@@ -3155,7 +3201,7 @@ function projHit(e,hit,r){const K=BK,t=e.t;const own=e.owner;
   else if(t==='egg'){if(hit)damage(hit,.01,'mob',own);if(Math.random()<.125)spawnMob('chicken',px,py,pz,{baby:true});spawnParticles('egg',px,py,pz,6);}
   else if(t==='pearl'){spawnParticles('portal',px,py,pz,20);if(own===PLAYER){const tx=r?r.px-e.vx*.03:px,tz=r?r.pz-e.vz*.03:pz;PLAYER.x=tx;PLAYER.z=tz;PLAYER.y=(r?r.py-e.vy*.03:py)+.1;PLAYER.vx=PLAYER.vy=PLAYER.vz=0;PLAYER.fallD=0;damage(PLAYER,5,'fall');sfx('teleport',tx,PLAYER.y,tz);if(Math.random()<.05)spawnMob('endermite',tx,PLAYER.y,tz);}}
   else if(t==='fireball'){explode(px,py,pz,1,true,own);if(hit)damage(hit,6,'explosion',own);}
-  else if(t==='smallfire'){if(hit){if(!hit.fireImm){damage(hit,5,'fire',own);hit.fire=5;}}else if(r){const fx=r.x+r.nx,fy=r.y+r.ny,fz=r.z+r.nz;if(getB(fx,fy,fz)===0&&GAME.difficulty>0)setB(fx,fy,fz,K.fire);}}
+  else if(t==='smallfire'){if(hit){if(!hit.fireImm){damage(hit,5,'fire',own);hit.fire=5;}}else if(r){const fx=r.x+r.nx,fy=r.y+r.ny,fz=r.z+r.nz;if(getB(fx,fy,fz)===0&&fireOk(fx,fy,fz,false))setB(fx,fy,fz,K.fire);}}
   else if(t==='skull'){explode(px,py,pz,1,false,own);if(hit){damage(hit,8,'wither',own);addEffect(hit,'wither',10,1);}}
   else if(t==='dfire'){spawnCloud(px,(r?r.py:py),pz,'dragon',6);}
   else if(t==='potion'||t==='xp'){spawnParticles('potion',px,py,pz,20,null,e.pc);sfx('glass',px,py,pz);if(t==='xp'){spawnXP(px,py,pz,3+Math.floor(Math.random()*9));return;}
@@ -3570,8 +3616,8 @@ function mobTick(e,dt){const d=e.def,p=nearPlayer(e);e.age+=dt;if(e.ifr>0)e.ifr-
   if(e.lifeT!==undefined){e.lifeT-=dt;if(e.lifeT<=0){damage(e,99,'kill');return;}}
   // окружение
   if(e.inL&&!e.fireImm){if(GAME.tick%10===0)damage(e,4,'lava');e.fire=15;}
-  if(e.fire>0){e.fire-=dt;if(e.inW)e.fire=0;if(!e.fireImm&&GAME.tick%20===0)damage(e,1,'fire');}
-  if(e.hotIn&&!e.fireImm){e.fire=Math.max(e.fire,3);}
+  if(e.fire>0){e.fire-=dt;if(e.inW||rainAt(Math.floor(e.x),Math.floor(e.y+1),Math.floor(e.z)))e.fire=0;if(!e.fireImm&&GAME.tick%20===0)damage(e,1,'fire');}
+  if(e.hotIn&&!e.fireImm){e.fire=Math.max(e.fire,8);if(GAME.tick%10===0)damage(e,e.hotSoul?2:1,'fire');}
   if(d.burnsDay&&isDay()&&WEATHER.rain<.5&&!e.inW&&!e.baby){const bx=Math.floor(e.x),by=Math.floor(e.y+e.h),bz=Math.floor(e.z);if(getSky(bx,by,bz)>=15)e.fire=Math.max(e.fire,3);}
   if(d.waterHurt&&(e.inW||(WEATHER.rain>.5&&CUR.id===0&&getSky(Math.floor(e.x),Math.floor(e.y+e.h),Math.floor(e.z))>=15))){if(GAME.tick%20===0)damage(e,1,'drown');if(d.ender)enderTeleport(e);}
   if(e.headW&&!d.water&&!d.noBreath&&!d.amph&&!d.undead){e.air-=dt;if(e.air<0&&GAME.tick%20===0)damage(e,2,'drown');}else e.air=15;
@@ -4486,7 +4532,7 @@ function useItemOnBlock(t,st){const K=BK,it=IT[st.id],x=t.x,y=t.y,z=t.z,id=t.id;
     if(it.k==='water_bucket'&&!(m&16)){setB(x,y,z,id,m|16);sfx('bucket',x,y,z);if(PLAYER.mode!=='creative')PLAYER.inv[PLAYER.sel]={id:IK.bucket,n:1};UI.dirty=true;return true;}
     if(it.k==='bucket'&&(m&16)){setB(x,y,z,id,m&~16);sfx('bucket',x,y,z);if(PLAYER.mode!=='creative'){consumeSel();giveItem({id:IK.water_bucket,n:1});}UI.dirty=true;return true;}}
   if(it.k==='flint_and_steel'){const fx=x+t.nx,fy=y+t.ny,fz=z+t.nz;if(id===K.obsidian&&tryLightPortal(fx,fy,fz)){damageItem('sel',1);achieve('portal_lit');return true;}
-    if(getB(fx,fy,fz)===0){setB(fx,fy,fz,BL[getB(fx,fy-1,fz)].soul?K.soul_fire:K.fire);sfx('ignite',fx,fy,fz);damageItem('sel',1);return true;}return false;}
+    const sb=getB(fx,fy-1,fz),soulF=sb===K.soul_sand||sb===K.soul_soil;if(getB(fx,fy,fz)===0&&fireOk(fx,fy,fz,soulF)){setB(fx,fy,fz,soulF?K.soul_fire:K.fire);sfx('ignite',fx,fy,fz);damageItem('sel',1);return true;}return false;}
   if(it.tool&&it.tool.t==='hoe'&&(id===K.dirt||id===K.grass_block||id===K.dirt_path||id===K.coarse_dirt)&&getB(x,y+1,z)===0){setB(x,y,z,id===K.coarse_dirt?K.dirt:K.farmland);sfx('break_grass',x,y,z);damageItem('sel',1);return true;}
   if(it.tool&&it.tool.t==='shovel'&&id===K.grass_block&&getB(x,y+1,z)===0){setB(x,y,z,K.dirt_path);sfx('break_grass',x,y,z);damageItem('sel',1);return true;}
   if(it.tool&&it.tool.t==='axe'&&BL[id].log&&!BL[id].k.startsWith('stripped')){const s=BK['stripped_'+BL[id].k];if(s!==undefined){setB(x,y,z,s,getM(x,y,z));sfx('break_wood',x,y,z);damageItem('sel',1);return true;}}
@@ -4627,13 +4673,17 @@ function updatePlayer(dt){const p=PLAYER;if(!p.alive){p.vx=p.vz=0;physStep(p,dt)
   // размеры
   // плавание: в воде медленно тонем, прыжок — всплываем, спринт под водой — плывём «рыбкой» туда, куда смотрим
   p.swim=true;const wasSwim=p.swimPose;p.swimPose=p.inW&&!p.flyNow&&(p.sprint||wasSwim&&fw>0)&&(p.headW||wasSwim&&p.inW)&&fw>0;
-  const targetEye=p.riding?1.06:p.sneak?1.27:p.glide||p.swimPose?.4:1.62;p.eyeH+=(targetEye-p.eyeH)*Math.min(1,dt*15);p.h=p.sneak?1.5:p.glide||p.swimPose?.6:1.8;p.eye=p.eyeH;
+  /* как в оригинале: встать во весь рост можно, только если над головой есть место — иначе остаёмся ползком (подо льдом, в щели) */
+  let wantH=p.sneak?1.5:p.glide||p.swimPose?.6:1.8;p.crawl=false;
+  if(!p.flyNow&&p.mode!=='spectator'&&wantH>p.h+1e-3&&insideSolid(p.x,p.y,p.z,.3,wantH)){wantH=p.h<1.5&&insideSolid(p.x,p.y,p.z,.3,1.5)?.6:1.5;if(wantH<1)p.crawl=true;}
+  if(p.crawl)p.swimPose=true;
+  const targetEye=p.riding?1.06:wantH<1?.4:wantH<1.6?1.27:1.62;p.eyeH+=(targetEye-p.eyeH)*Math.min(1,dt*15);p.h=wantH;p.eye=p.eyeH;
   if(!p.sneak&&p.h<1.8&&insideSolid(p.x,p.y,p.z,.3,1.8)){p.h=1.5;p.sneak=true;}
   p.noclip=sp;p.noGrav=p.flyNow;p.sneakEdge=p.sneak&&!p.flyNow;
   // желаемая скорость
   const yaw=p.yaw;const fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);let wx=fx*fw+rx*st,wz=fz*fw+rz*st;const wl=Math.hypot(wx,wz);if(wl>1){wx/=wl;wz/=wl;}
   let speed=p.flyNow?(p.sprint?22:11):p.sneak?1.3:p.sprint?5.6:4.3;if(p.effects.speed)speed*=1.2*(1+p.effects.speed.amp*.2);if(p.effects.slowness)speed*=.85;if(p.useT>0&&!p.flyNow)speed*=.3;if(p.bowT>0||p.crossT>0)speed*=.3;
-  if(p.inW&&!p.flyNow){speed=p.swimPose?5.6:p.sprint?4:2.2+enchLvl(p.armor[3],'depth_strider')*.6;}else if(p.inL&&!p.flyNow)speed=1.2;
+  if(p.inW&&!p.flyNow){speed=p.swimPose&&!p.crawl?5.6:p.crawl?2.2:p.sprint?4:2.2+enchLvl(p.armor[3],'depth_strider')*.6;}else if(p.inL&&!p.flyNow)speed=1.2;else if(p.crawl&&!p.flyNow)speed=1.3;
   p.ctrl=wl>0;
   if(p.flyNow){const k=Math.min(1,dt*(sp?10:8));p.vx+=(wx*speed-p.vx)*k;p.vz+=(wz*speed-p.vz)*k;let vyT=0;if(jump)vyT=speed*.75;if(sneakK)vyT=-speed*.75;p.vy+=(vyT-p.vy)*k;}
   else if(p.glide){const lv=lookVec();const hs=Math.hypot(p.vx,p.vz);p.vy-=GRAV*.25*dt;p.vy+=Math.max(0,-lv[1])*0;const tgt=Math.max(8,Math.hypot(p.vx,p.vy,p.vz));
@@ -4673,7 +4723,7 @@ function survivalTick(dt){const p=PLAYER;
   else if(p.food<=0){p.starveT+=dt;if(p.starveT>4){p.starveT=0;const lim=GAME.difficulty===1?10:GAME.difficulty===2?1:0;if(p.hp>lim)damage(p,1,'starve');}}
   if(p.headW&&!p.effects.water_breathing){const r=enchLvl(p.armor[0],'respiration');if(Math.random()<1/(r+1))p.air-=dt*20;if(p.air<=-20){p.air=0;damage(p,2,'drown');}UI.dirty=true;}else if(p.air<300){p.air=Math.min(300,p.air+dt*80);UI.dirty=true;}
   if(p.inL){if(GAME.tick%10===0)damage(p,4,'lava');p.fire=15;}
-  if(p.hotIn&&!p.inL)p.fire=Math.max(p.fire,8);
+  if(p.hotIn&&!p.inL){p.fire=Math.max(p.fire,8);if(GAME.tick%10===0)damage(p,p.hotSoul?2:1,'fire');}/* стоять в огне: урон сразу и поджог на 8 с */
   if(p.fire>0){p.fire-=dt;if(p.inW||WEATHER.rain>.5&&getSky(Math.floor(p.x),Math.floor(p.y+1),Math.floor(p.z))>=15)p.fire=0;if(GAME.tick%20===0&&p.fire>0)damage(p,1,'fire');}
   if(p.onMagma&&!p.sneak&&GAME.tick%20===0&&!p.effects.fire_resistance)damage(p,1,'fire');
   if(GAME.tick%10===0){const hw=.31;const B=blockBoxesIn(p.x-hw,p.y,p.z-hw,p.x+hw,p.y+p.h,p.z+hw,[]);for(let bx=Math.floor(p.x-hw);bx<=Math.floor(p.x+hw);bx++)for(let bz=Math.floor(p.z-hw);bz<=Math.floor(p.z+hw);bz++)for(let by=Math.floor(p.y);by<=Math.floor(p.y+p.h);by++)if(getB(bx,by,bz)===BK.cactus)damage(p,1,'cactus');
@@ -4692,6 +4742,7 @@ function handleMouse0(dt){const p=PLAYER;if(UI.open||CHAT.open||!GAME.locked&&!T
   useCD-=dt;breakCD-=dt;const st=selStack(),it=st?IT[st.id]:null;const t=p.target;
   // ЛКМ
   if(MOUSE.lClick){MOUSE.lClick=false;if(p.mode==='spectator'){const mobs=ENTS.filter(e=>e.def);if(mobs.length){p.specIdx=((p.specIdx||0)+1)%mobs.length;const m=mobs[p.specIdx];p.x=m.x;p.y=m.y+m.h+1;p.z=m.z;toast('Наблюдение: '+m.def.n);}return;}
+    /* удар по блоку тушит огонь на этой его грани (как в оригинале) */if(t&&t.block&&t.nx!==undefined){const fx=t.x+t.nx,fy=t.y+t.ny,fz=t.z+t.nz,fb=getB(fx,fy,fz);if(fb===BK.fire||fb===BK.soul_fire){setB(fx,fy,fz,0);sfx('fizz',fx+.5,fy+.5,fz+.5,{vol:.5});p.swingT=.3;return;}}
     if(t&&t.ent){attack(t.ent);return;}p.swingT=.3;}
   if(MOUSE.l&&p.mode!=='spectator'&&t&&t.block){const d=BL[t.id];
     if(p.mode==='adventure'&&!toolFor(st,d).ok){p.breakP=0;}
@@ -5729,7 +5780,7 @@ const DB=(()=>{let db=null;const mem={worlds:new Map(),chunks:new Map(),id:1};le
   async function listWorlds(){await open();if(useMem)return [...mem.worlds.values()].sort((a,b)=>b.last-a.last);const all=await req(st('worlds').getAll());return all.sort((a,b)=>b.last-a.last);}
   async function getWorld(id){await open();if(useMem)return mem.worlds.get(id);return req(st('worlds').get(id));}
   async function putWorld(w){await open();if(useMem){if(!w.id)w.id=mem.id++;mem.worlds.set(w.id,w);return w.id;}return req(st('worlds','readwrite').put(w));}
-  const range=wid=>IDBKeyRange.bound(wid+'|',wid+'|￿');
+  const range=wid=>IDBKeyRange.bound(wid+'|',wid+'| ');
   async function deleteWorld(id){await open();if(useMem){mem.worlds.delete(id);for(const k of [...mem.chunks.keys()])if(k.startsWith(id+'|'))mem.chunks.delete(k);return;}
     await req(st('worlds','readwrite').delete(id));await req(st('chunks','readwrite').delete(range(id)));}
   async function chunkKeys(wid){await open();if(useMem)return new Set([...mem.chunks.keys()].filter(k=>k.startsWith(wid+'|')));return new Set(await req(st('chunks').getAllKeys(range(wid))));}
@@ -5789,14 +5840,16 @@ function skin2D(x,i,X,Y,u){const S=SKIN_DEFS[i]||SKIN_DEFS[0];const r=c=>`rgb(${
   px(4,20,4,12,S.leg);px(8,20,4,12,S.leg);px(4,30,8,2,S.boot);/* ноги */}
 /* ---------- сигнальный сервер (PeerJS) или локальный канал (вкладки одного браузера) ---------- */
 function netUrl(){return (SET.netSrv||'').trim()||'wss://0.peerjs.com:443/peerjs';}
-function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc)netDisconnect(true);NET.st='connecting';NET.err='';NET.id=nickId(SET.nick);netUI();
+function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc||NET.mq)netDisconnect(true);NET.st='connecting';NET.err='';NET.id=nickId(SET.nick);netUI();
   if((SET.netSrv||'').trim()==='local'){/* локальный режим: несколько вкладок одного браузера (для проверки) */
     const bc=new BroadcastChannel('bcraft-net');NET.bc=bc;let taken=false;
     bc.onmessage=ev=>{const m=ev.data;if(!m)return;if(m.type==='HELLO'&&m.src===NET.id&&m.n!==NET.nonce){bc.postMessage({type:'TAKEN',dst:NET.id,n:m.n});return;}
       if(m.type==='TAKEN'&&m.dst===NET.id&&m.n===NET.nonce){taken=true;return;}if(m.dst!==NET.id)return;netSig(m);};
     NET.nonce=Math.random().toString(36).slice(2);bc.postMessage({type:'HELLO',src:NET.id,n:NET.nonce});
     setTimeout(()=>{if(NET.bc!==bc)return;if(taken){netSigErr('Этот ник уже используется (игра открыта в другой вкладке?)');return;}netOnline();},350);return;}
-  let ws;try{ws=new WebSocket(netUrl()+'?key='+encodeURIComponent(SET.netKey||'peerjs')+'&id='+NET.id+'&token='+Math.random().toString(36).slice(2)+'&version=1.5.4');}catch(e){netSigErr('Не удалось подключиться к серверу');return;}
+  const srv=(SET.netSrv||'').trim();if(!/peerjs/i.test(srv)){mqttConnect(srv);return;}/* по умолчанию — публичные MQTT-брокеры */
+  if(!SET.netTok){SET.netTok=Math.random().toString(36).slice(2);saveSet();}
+  let ws;try{ws=new WebSocket(netUrl()+'?key='+encodeURIComponent(SET.netKey||'peerjs')+'&id='+NET.id+'&token='+SET.netTok+'&version=1.5.4');}catch(e){netSigErr('Не удалось подключиться к серверу');return;}
   NET.ws=ws;const to=setTimeout(()=>{if(NET.ws===ws&&NET.st==='connecting'){try{ws.close();}catch(e){}}},20000);
   ws.onmessage=ev=>{let m;try{m=JSON.parse(ev.data);}catch(e){return;}
     if(m.type==='OPEN'){clearTimeout(to);netOnline();return;}
@@ -5812,9 +5865,49 @@ function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc)ne
 function netOnline(){NET.st='online';NET.err='';NET.retry=0;NET.noRetry=false;clearInterval(NET.hb);if(NET.ws)NET.hb=setInterval(()=>{try{NET.ws&&NET.ws.readyState===1&&NET.ws.send(JSON.stringify({type:'HEARTBEAT'}));}catch(e){}},5000);
   netUI();netPresAll();/* отправленные заявки повторяем, когда снова в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}}
 function netSigErr(t){NET.st='error';NET.err=t;netUI();}
-function netDisconnect(keepState){clearInterval(NET.hb);clearTimeout(NET.retryT);if(NET.ws){const w=NET.ws;NET.ws=null;try{w.close();}catch(e){}}if(NET.bc){try{NET.bc.close();}catch(e){}NET.bc=null;}if(!keepState){NET.st='off';netUI();}}
+function netDisconnect(keepState){clearInterval(NET.hb);clearTimeout(NET.retryT);clearTimeout(NET.mqT);if(NET.mq){for(const c of NET.mq.conns)c.close();NET.mq=null;}if(NET.ws){const w=NET.ws;NET.ws=null;try{w.close();}catch(e){}}if(NET.bc){try{NET.bc.close();}catch(e){}NET.bc=null;}if(!keepState){NET.st='off';netUI();}}
+/* ---------- MQTT поверх WebSocket: публичные брокеры как «почтовые ящики» для поиска друзей ----------
+   Подключаемся сразу к двум брокерам и шлём через оба: если один тормозит или недоступен, всё равно дойдёт. */
+const MQTT_DEF=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
+const mqStr=s=>{const b=new TextEncoder().encode(s);const o=new Uint8Array(b.length+2);o[0]=b.length>>8;o[1]=b.length&255;o.set(b,2);return o;};
+function mqPkt(h,parts){let n=0;for(const p of parts)n+=p.length;const L=[];let x=n;do{let d=x%128;x=Math.floor(x/128);if(x>0)d|=128;L.push(d);}while(x>0);
+  const o=new Uint8Array(1+L.length+n);o[0]=h;o.set(L,1);let k=1+L.length;for(const p of parts){o.set(p,k);k+=p.length;}return o;}
+function mqTopic(id){return 'bcraft67/u/'+id;}
+class MqttConn{constructor(url){this.url=url;this.ok=false;this.dead=false;this.buf=new Uint8Array(0);this.retry=0;this.open();}
+  open(){let ws;try{ws=new WebSocket(this.url,'mqtt');}catch(e){this.later();return;}ws.binaryType='arraybuffer';this.ws=ws;
+    ws.onopen=()=>{const cid='bc'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-6);
+      this.send(mqPkt(0x10,[new Uint8Array([0,4,77,81,84,84,4,2,0,60]),mqStr(cid)]));};
+    ws.onmessage=e=>{if(typeof e.data==='string')return;this.data(new Uint8Array(e.data));};
+    ws.onclose=()=>{this.ok=false;clearInterval(this.pi);if(this.ws!==ws)return;this.ws=null;this.buf=new Uint8Array(0);mqttState();if(!this.dead)this.later();};
+    ws.onerror=()=>{};}
+  later(){this.retry=Math.min(6,this.retry+1);clearTimeout(this.rt);this.rt=setTimeout(()=>{if(!this.dead)this.open();},[1,2,4,8,15,30,30][this.retry]*1000);}
+  send(u){if(this.ws&&this.ws.readyState===1){try{this.ws.send(u);}catch(e){}}}
+  data(u){const b=new Uint8Array(this.buf.length+u.length);b.set(this.buf);b.set(u,this.buf.length);this.buf=b;
+    for(;;){const B=this.buf;if(B.length<2)break;let rl=0,m=1,i=1,ok=false;for(;i<5&&i<B.length;i++){rl+=(B[i]&127)*m;m*=128;if(!(B[i]&128)){ok=true;break;}}if(!ok)break;
+      const hd=i+1,tot=hd+rl;if(B.length<tot)break;const t=B[0]>>4,fl=B[0]&15,p=B.subarray(hd,tot);this.buf=B.slice(tot);try{this.pkt(t,fl,p);}catch(e){console.warn('mqtt',e);}}}
+  pkt(t,fl,p){if(t===2){if(p[1]!==0){this.dead=true;try{this.ws.close();}catch(e){}return;}/* CONNACK → подписка на свой ящик */
+      this.send(mqPkt(0x82,[new Uint8Array([0,1]),mqStr(mqTopic(NET.id)),new Uint8Array([0])]));return;}
+    if(t===9){this.ok=true;this.retry=0;clearInterval(this.pi);this.pi=setInterval(()=>this.send(new Uint8Array([0xC0,0])),30000);
+      this.pub(mqTopic(NET.id),JSON.stringify({type:'HELLO',src:NET.id,n:NET.nonce,mid:Math.random().toString(36).slice(2)}));mqttState();return;}
+    if(t===3){const tl=(p[0]<<8)|p[1];let off=2+tl;if((fl>>1)&3)off+=2;mqttIn(new TextDecoder().decode(p.subarray(off)));}}
+  pub(topic,str){this.send(mqPkt(0x30,[mqStr(topic),new TextEncoder().encode(str)]));}
+  close(){this.dead=true;this.ok=false;clearTimeout(this.rt);clearInterval(this.pi);if(this.ws){const w=this.ws;this.ws=null;try{w.send(new Uint8Array([0xE0,0]));}catch(e){}try{w.close();}catch(e){}}}}
+function mqttConnect(srv){const urls=srv?srv.split(/\s*,\s*/).filter(Boolean):MQTT_DEF;NET.nonce=Math.random().toString(36).slice(2);NET.mq={conns:[],seen:new Set(),q:[]};
+  for(const u of urls)NET.mq.conns.push(new MqttConn(u));
+  clearTimeout(NET.mqT);NET.mqT=setTimeout(()=>{if(NET.mq&&NET.st==='connecting')netSigErr('Серверы поиска не отвечают — проверьте интернет (игра будет пробовать снова)');},20000);}
+function mqttState(){if(!NET.mq)return;const n=NET.mq.conns.filter(c=>c.ok).length;NET.mqN=n;
+  if(n>0&&NET.st!=='online'){clearTimeout(NET.mqT);netOnline();}else if(n===0&&NET.st==='online'){NET.st='connecting';NET.err='';}netUI();}
+function mqttPub(dst,m){if(!NET.mq)return false;m.mid=Math.random().toString(36).slice(2)+Date.now().toString(36);const str=JSON.stringify(m);let ok=false;
+  for(const c of NET.mq.conns)if(c.ok){c.pub(mqTopic(dst),str);ok=true;}return ok;}
+function mqttIn(str){let m;try{m=JSON.parse(str);}catch(e){return;}const M=NET.mq;if(!M||!m)return;if(m.mid){if(M.seen.has(m.mid))return;M.seen.add(m.mid);M.q.push(m.mid);if(M.q.length>600)M.seen.delete(M.q.shift());}
+  if(m.src===NET.id){/* сообщения в собственный ящик: проверка, не занят ли ник */
+    if(m.type==='HELLO'&&m.n!==NET.nonce){for(const c of M.conns)if(c.ok)c.pub(mqTopic(NET.id),JSON.stringify({type:'TAKEN',src:NET.id,n:m.n,mid:Math.random().toString(36).slice(2)}));}
+    else if(m.type==='TAKEN'&&m.n===NET.nonce){NET.noRetry=true;netDisconnect(true);netSigErr('Этот ник сейчас уже в сети (игра открыта на другом устройстве или вкладке). Выберите другой ник.');}
+    return;}
+  netSig(m);}
 function sigSend(nick,type,payload){const dst=nickId(nick);payload.from=myNick();
   if(NET.bc){NET.bc.postMessage(JSON.parse(JSON.stringify({type,payload,src:NET.id,dst})));return true;}
+  if(NET.mq)return mqttPub(dst,{type,payload,src:NET.id});
   if(NET.ws&&NET.ws.readyState===1){NET.ws.send(JSON.stringify({type,payload,dst}));return true;}return false;}
 function netApp(nick,o){return sigSend(nick,'CANDIDATE',Object.assign({bc:'app'},o));}
 /* входящие сообщения сигнального сервера */
@@ -6091,7 +6184,7 @@ function guestTick(dt){if(!NET.guest||!NET.host)return;const p=PLAYER;
   NET.tPst+=dt;if(NET.tPst>=10){NET.tPst=0;NET.host.send({k:'pst',ps:guestPS()});}}
 /* общий тик сети (вызывается каждый кадр) */
 function netTick(dt){if(NET.hosting&&GAME.on)hostTick(dt);if(NET.guest&&GAME.on)guestTick(dt);
-  NET.tPres+=dt;if(NET.tPres>30){NET.tPres=0;if(NET.st==='online')netPresAll();}
+  NET.tPres+=dt;if(NET.tPres>20){NET.tPres=0;if(NET.st==='online'){netPresAll();/* заявки, которые ещё не приняты, отправляем повторно — дойдут, как только друг будет в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}}}
   if(NET.hosting&&GAME.on){NET.tCold=(NET.tCold||0)+dt;if(NET.tCold>8){NET.tCold=0;NET.flushCold();}}
   nameTags();}
 function sayChat(v){const t=v.slice(0,200);if(NET.guest&&NET.host){NET.host.send({k:'chat',t});return;}if(NET.hosting){chatAll('<'+myNick()+'> '+t);return;}chatMsg('<'+(SET.nick||'Игрок')+'> '+t);}
@@ -6113,7 +6206,7 @@ function netUI(){if(MULTI_ON)multiScreen(true);}
 function multiScreen(refresh){netInit();MULTI_ON=true;const F=SET.friends;const st=NET.st;
   if(!refresh&&nickOk(SET.nick)&&st!=='online'&&st!=='connecting'&&!NET.noRetry)netConnect();
   if(!refresh)netPresAll();
-  const stTxt=!nickOk(SET.nick)?'<span class="neterr">Задайте ник, чтобы играть с друзьями</span>':st==='online'?`<span class="neton">● В сети как <b>${esc(SET.nick)}</b></span>`:st==='connecting'?'<span class="g">○ Подключение…</span>':`<span class="neterr">○ Нет связи${NET.err?': '+esc(NET.err):''}</span>`;
+  const stTxt=!nickOk(SET.nick)?'<span class="neterr">Задайте ник, чтобы играть с друзьями</span>':st==='online'?`<span class="neton">● В сети как <b>${esc(SET.nick)}</b>${NET.mq?' <span class="g">(серверов поиска: '+(NET.mqN||0)+' из '+NET.mq.conns.length+')</span>':''}</span>`:st==='connecting'?'<span class="g">○ Подключение…</span>':`<span class="neterr">○ Нет связи${NET.err?': '+esc(NET.err):''}</span>`;
   const rows=Object.keys(F).sort((a,b)=>{const o=x=>F[x].s==='in'?0:F[x].s==='ok'?(NET.pres[x]&&NET.pres[x].open?1:NET.pres[x]&&NET.pres[x].on?2:3):4;return o(a)-o(b)||a.localeCompare(b);}).map(k=>{const f=F[k],pr=NET.pres[k]||{};let s,b='';
     if(f.s==='in'){s='<span class="g">хочет добавить вас в друзья</span>';b=btn('Принять','acc:'+k)+btn('Отклонить','del:'+k);}
     else if(f.s==='out'){s='<span class="g">заявка отправлена — ждём ответа</span>';b=btn('Отменить','del:'+k);}
@@ -6140,8 +6233,8 @@ function multiScreen(refresh){netInit();MULTI_ON=true;const F=SET.friends;const 
   const inp=$('mpfr');if(inp)inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.add();};const ni=$('mpnick');if(ni)ni.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.nick();};
   clearTimeout(multiScreen.t);multiScreen.t=setTimeout(()=>{if(MULTI_ON&&$('menu').querySelector('.mp')&&document.activeElement.tagName!=='INPUT'){netPresAll();multiScreen(true);}},6000);}
 function netSettings(){MULTI_ON=false;menu(`<div class="panel"><h2>Настройки сети</h2>
-  <p class="g small">Сервер поиска нужен только чтобы найти друга по нику; сама игра идёт напрямую между устройствами. По умолчанию используется бесплатный публичный сервер PeerJS. Можно указать свой (PeerServer) или «local» для проверки в нескольких вкладках одного браузера.</p>
-  <label>Сервер поиска (wss://…/peerjs)<input id="nsrv" value="${esc(SET.netSrv||'')}" placeholder="wss://0.peerjs.com:443/peerjs"></label>
+  <p class="g small">Сервер поиска нужен только чтобы найти друга по нику и передать приглашение; сама игра идёт напрямую между устройствами. По умолчанию игра подключается сразу к двум бесплатным публичным серверам (EMQX и HiveMQ). Поле можно оставить пустым. У всех друзей настройка должна совпадать. Можно указать свои MQTT-серверы (wss://…/mqtt через запятую), сервер PeerJS (адрес с «peerjs») или «local» для проверки в вкладках одного браузера.</p>
+  <label>Сервер поиска (пусто — по умолчанию)<input id="nsrv" value="${esc(SET.netSrv||'')}" placeholder="по умолчанию: EMQX + HiveMQ"></label>
   <label>Ключ сервера<input id="nkey" value="${esc(SET.netKey||'')}" placeholder="peerjs"></label>
   <p class="g small">Если друзья не могут подключиться (часто бывает в мобильном интернете), нужен TURN-сервер — он пересылает трафик, когда прямое соединение невозможно. Укажите его адрес и данные доступа (например, бесплатный тариф Open Relay / Metered).</p>
   <label>TURN-адрес (turn:host:port, можно несколько через запятую)<input id="nturn" value="${esc(SET.turnUrl||'')}" placeholder="turn:example.com:3478"></label>
