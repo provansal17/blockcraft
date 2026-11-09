@@ -4253,18 +4253,18 @@ function drawPlayerModel(now,e0,parts0,st0){const e=e0||PLAYER,U=P_ENT.U,PP=part
   const f=e.swingT>0?1-e.swingT/.3:0,fs=Math.sin(f*Math.PI),fq=Math.sin(Math.sqrt(f)*Math.PI*2);
   const st=e0?st0:selStack(),held=st&&IT[st.id]?IT[st.id]:null;
   const twist=fs>0?fq*.2:0;
-  let base=M4.chain(M4.tr(e.x,e.y-(sit?.56:sn?.125:0),e.z),M4.ry(by+Math.PI));
+  let base=M4.chain(M4.tr(e.x,e.y-(sit?.56:sn?.2:0),e.z),M4.ry(by+Math.PI));
   const bodyP=swim&&!crawlP?clamp(-(e.pitch||0),-1.2,1.2):0;/* в воде тело вытянуто вдоль направления взгляда, ползком — горизонтально */
   if(swim)base=M4.chain(base,M4.tr(0,.3,0),M4.rx(Math.PI/2+bodyP),M4.tr(0,-.9,0));
   if(e.sleepT>0&&e.sleepHead){const F=e.sleepHead;base=M4.chain(M4.tr(e.x-F[0]*1.5,e.y-.05,e.z-F[1]*1.5),M4.ry(Math.atan2(-F[0],-F[1])),M4.rx(-Math.PI/2));}// лежит на кровати
   base=M4.mul(base,M4.sc(1/16));
-  /* присед: тело не наклоняется, голова смотрит ровно туда же, куда камера */
-  const torso=M4.chain(base,M4.tr(0,12,0),M4.ry(twist),M4.tr(0,-12,0));
+  /* присед как раньше: тело наклоняется вперёд, а голова компенсирует наклон и смотрит ровно туда же, куда камера */
+  const torso=M4.chain(base,M4.tr(0,12,sn?-3:0),M4.ry(twist),M4.rx(sn?.5:0),M4.tr(0,-12,0));
   /* в позе плавания голова приподнята, чтобы смотреть вперёд (как в оригинале) */
-  const headR=M4.chain(M4.ry(clamp(angDiff(e.yaw,by),-1.2,1.2)),M4.rx(swim?clamp(-Math.PI/2-(e.pitch||0)-bodyP,-1.15,0):-(e.pitch||0)));
+  const headR=M4.chain(M4.rx(sn?-.5:0),M4.ry(clamp(angDiff(e.yaw,by),-1.2,1.2)),M4.rx(swim?clamp(-Math.PI/2-(e.pitch||0)-bodyP,-1.15,0):-(e.pitch||0)));/* сначала снимаем наклон тела, потом поворот головы — голова не заваливается набок */
   const R={head:headR,legL:M4.rx(sw),legR:M4.rx(-sw),
-    armL:M4.chain(M4.rx(-sw*.8+(sn?-.25:0)),M4.rz(.06+Math.sin(now/1100)*.03)),
-    armR:M4.chain(M4.rx(sw*.8+(held?-.32:0)+(sn?-.25:0)-(fs*1.2+fs*(.7+(swim?0:e.pitch||0))*.75)),M4.rz(-.06-Math.sin(now/1100)*.03+fs*.4))};
+    armL:M4.chain(M4.rx(-sw*.8+(sn?-.4:0)),M4.rz(.06+Math.sin(now/1100)*.03)),
+    armR:M4.chain(M4.rx(sw*.8+(held?-.32:0)+(sn?-.4:0)-(fs*1.2+fs*(.7+(swim?0:e.pitch||0))*.75)),M4.rz(-.06-Math.sin(now/1100)*.03+fs*.4))};
   if(swim&&!e.glide){/* брасс: руки вперёд → в стороны → к бёдрам → назад вперёд; ноги — частые махи */
     const c=((e.swc||0)%1+1)%1,a=Math.max(.25,swA);let rx,rz;
     if(c<.35){const t=c/.35;rx=-Math.PI+t*(Math.PI*.45);rz=t*1.25;}else if(c<.7){const t=(c-.35)/.35;rx=-Math.PI*.55+t*Math.PI*.55;rz=1.25-t*1.05;}else{const t=(c-.7)/.3,tt=t*t*(3-2*t);rx=-tt*Math.PI;rz=.2*(1-tt);}
@@ -4276,7 +4276,7 @@ function drawPlayerModel(now,e0,parts0,st0){const e=e0||PLAYER,U=P_ENT.U,PP=part
   if(e.useT>0&&held&&(held.food||held.drink))R.armR=M4.chain(M4.rx(-1.3+Math.sin(now/60)*.1),M4.ry(-.4));
   if(held&&held.cross&&(st.loaded||e.crossT>0))R.armR=M4.chain(M4.rx(-1.45-(e.pitch||0)),M4.ry(-.25)),R.armL=M4.chain(M4.rx(-1.35-(e.pitch||0)),M4.ry(.6));
   if(e.bowT>0)R.armR=M4.chain(M4.rx(-1.5-(e.pitch||0)),M4.ry(-.1)),R.armL=M4.chain(M4.rx(-1.5-(e.pitch||0)),M4.ry(.5));
-  const mats={};for(const pt of PP){const bn=pt.base||pt.nm,isLeg=bn==='legL'||bn==='legR';mats[pt.nm]=[isLeg?base:torso,R[pt.r]||null];}
+  const mats={};for(const pt of PP){const bn=pt.base||pt.nm,isLeg=bn==='legL'||bn==='legR';mats[pt.nm]=[isLeg?M4.mul(base,M4.tr(0,0,sn?-1:0)):torso,R[pt.r]||null];}
   gl.uniform4fv(U.uTint,hurt);for(const pt of PP){const [B,r]=mats[pt.nm];drawPart(B,pt,r);}
   // броня
   for(let sl=0;sl<4;sl++){const a=e.armor&&e.armor[sl];if(!a)continue;const d2=IT[a.id];const k=d2.mat==='golden'?'golden':d2.mat;const L=ARMOR_PARTS[k]||ARMOR_PARTS.iron;
@@ -4388,9 +4388,9 @@ function drawHand(now,dt){const p=PLAYER;gl.clear(gl.DEPTH_BUFFER_BIT);const w=V
   let base=M4.chain(M4.tr(.56+bx-f2*.24-ef*.4,-.52+by-eq+f3*.12+ef*.18+chew,-.72-swS*.14+ef*.12),M4.ry(.785-f1*.35+ef*.75),M4.rz(-f2*.3),M4.rx(-f2*1.2+ef*.25),M4.ry(-.785));
   gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
   const H=window.HT||{};const hv=(k,v)=>H[k]===undefined?v:H[k];
-  if(!st){setEntCommonHand(VP,s,b);const arm=Object.assign({},skinParts(SET.skin).find(q=>q.nm==="armR"),{px:0,py:0,pz:0});
+  if(!st){setEntCommonHand(VP,s,b);/* рука и её второй слой (рукав), как у модели в F5 */const arms=skinParts(SET.skin).filter(q=>(q.base||q.nm)==='armR').map(q=>Object.assign({},q,{px:0,py:0,pz:0}));
     // плечо за правым нижним краем экрана, рука уходит вперёд-вверх-влево, кулак у центра справа
-    const M=M4.chain(base,M4.tr(hv('ax',.19),hv('ay',-.08),hv('az',.22)),M4.ry(hv('ary',.35)),M4.rx(hv('arx',2.15)-swS*.5),M4.ry(hv('aroll',-.5)),M4.sc(1/16*hv('as',1.05)));drawPart(M,arm,null);return;}
+    const M=M4.chain(base,M4.tr(hv('ax',.19),hv('ay',-.08),hv('az',.22)),M4.ry(hv('ary',.35)),M4.rx(hv('arx',2.15)-swS*.5),M4.ry(hv('aroll',-.5)),M4.sc(1/16*hv('as',1.05)));for(const q of arms)drawPart(M,q,null);return;}
   if(d.pick&&PICK.ready){const L=Math.max(lm2(s)*VIEW.sun,lm2(b)*1.05,VIEW.amb);
     const M=M4.chain(base,M4.tr(hv('px',.12),hv('py',-.07),hv('pz',.0)),M4.ry(hv('pry',-.7)),M4.rz(hv('prz',.8)),M4.rx(hv('prx',-.25)),M4.sc(hv('ps',.86)),M4.tr(0,hv('pg',.72),0));PICK.draw(d.pick,M,VP,[0,0,0],{lit:Math.min(1.15,L*1.15)});return;}
   const U=P_BLK.U;gl.useProgram(P_BLK.p);gl.uniformMatrix4fv(U.uVP,false,VP);gl.uniform3f(U.uCam,0,0,0);gl.uniform1f(U.uFogA,1e5);gl.uniform1f(U.uFogB,1e6);gl.uniform1f(U.uSun,VIEW.sun);gl.uniform1f(U.uAmb,VIEW.amb);gl.uniform1f(U.uCut,.5);gl.uniform4f(U.uTint,0,0,0,0);gl.uniform1f(U.uAlpha,1);gl.uniform1f(U.uWave,0);
