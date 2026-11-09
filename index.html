@@ -102,6 +102,9 @@ body.actbtn #itemname{visibility:hidden}#itemname{position:absolute;left:50%;bot
 .skins{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.skn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;border:2px solid #444;background:rgba(0,0,0,.45);cursor:pointer;font-size:10px;color:#ccc;width:96px;text-align:center;overflow:hidden}
 .skn canvas{width:40px;height:80px;image-rendering:pixelated}.skn.on{border-color:#fff;background:rgba(255,255,255,.12);color:#fff}
 .flist{width:100%;max-height:calc(var(--vh,1vh)*32);overflow-y:auto;background:rgba(0,0,0,.5);border:1px solid #444}.fri{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid #333;flex-wrap:wrap}.fri b{min-width:110px}.fri span{font-size:12px}.frb{margin-left:auto;display:flex;gap:6px}.frb .mb{padding:4px 10px;font-size:13px;min-width:0}
+.wopen{width:100%;display:flex;flex-direction:column;gap:6px}.wcard{display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(40,90,40,.45);border:2px solid #4a8a4a;cursor:pointer}
+.wcard:hover{background:rgba(60,130,60,.6);border-color:#8f8}.wcard canvas{width:40px;height:40px;image-rendering:pixelated;border:2px solid #222;background:#000}.wct{display:flex;flex-direction:column;text-align:left;flex:1}.wct b{font-size:16px;color:#fff}.wct span{font-size:12px;color:#cfc}.wgo{color:#fff;font-weight:bold;white-space:nowrap}
+#menu label.chk{flex-direction:row;align-items:center;gap:8px;font-size:14px}#menu label.chk input{flex:0 0 auto;min-width:0;width:18px;height:18px;padding:0}#menu label.chk{width:auto;align-self:flex-start}
 .logoimg{width:min(calc(var(--vw,1vw)*86),760px);image-rendering:pixelated;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45));margin-bottom:-6px;user-select:none;-webkit-user-drag:none}.logoimg.small{width:min(calc(var(--vw,1vw)*70),520px);display:block;margin:0 auto 20px}
 .achl{max-height:calc(var(--vh,1vh)*46);overflow-y:auto;-webkit-overflow-scrolling:touch}
 @media (max-width:700px){.achl{grid-template-columns:repeat(2,1fr)}}
@@ -3522,6 +3525,7 @@ function buildMobAtlas(){const ctx=MATL.cv.getContext('2d');const img=ctx.create
   const alloc=part=>{part.fr=[];PAINT_SK=part.sk||null;const R=RNG(hstr(part.nm+part.c.join(',')+(part.pat||'')+(part.bpat||'')+(part.sk?part.sk.id:''))+t);t++;
     const k=Math.min(1,24/Math.max(part.w,part.h,part.d,1)),dm=v=>Math.max(1,Math.round(v*k));const W=dm(part.w),H=dm(part.h),D=dm(part.d);
     const sizes=[[W,H],[W,H],[D,H],[D,H],[W,D],[W,D]];
+    if(part.cust){part.rx=[];for(let fi=0;fi<6;fi++){const [fw,fh]=sizes[fi];const [tx,ty]=place(fw,fh);for(let y=0;y<fh;y++)for(let x=0;x<fw;x++)img.data[((ty+y)*1024+tx+x)*4+3]=0;part.rx.push([tx,ty,fw,fh]);part.fr.push((tx+.02)/1024,(ty+.02)/1024,(fw-.04)/1024,(fh-.04)/1024);}return;}
     for(let fi=0;fi<6;fi++){const [fw,fh]=sizes[fi];
       if(part.art&&part.art[fi]){const rows=part.art[fi],pal=Object.assign({},ART_PAL,part.pal||{});const [tx,ty]=place(fw,fh);
         for(let y=0;y<fh;y++)for(let x=0;x<fw;x++){const ch=rows[Math.min(rows.length-1,Math.floor(y*rows.length/fh))][Math.min(rows[0].length-1,Math.floor(x*rows[0].length/fw))];
@@ -3536,7 +3540,7 @@ function buildMobAtlas(){const ctx=MATL.cv.getContext('2d');const img=ctx.create
         else{const col=sh(part.c,SH[Math.floor(R()*7)]);img.data[o]=col[0];img.data[o+1]=col[1];img.data[o+2]=col[2];img.data[o+3]=255;}}
       part.fr.push((tx+.02)/1024,(ty+.02)/1024,(fw-.04)/1024,(fh-.04)/1024);}};
   for(const k in MOBS){const d=MOBS[k];d.parts=d.m();for(const p of d.parts)alloc(p);}
-  for(const p of DRAGON_PARTS)alloc(p);for(const L of SKIN_PARTS)for(const p of L)alloc(p);PAINT_SK=null;for(const k in ARMOR_PARTS)for(const L of ARMOR_PARTS[k])for(const p of L)alloc(p);for(const p of CRYSTAL_PARTS)alloc(p);
+  for(const p of DRAGON_PARTS)alloc(p);for(const L of SKIN_PARTS)for(const p of L)alloc(p);PAINT_SK=null;for(const S of CUSTOM_SLOTS){for(const p of S.pC)alloc(p);for(const p of S.pS)alloc(p);}for(const k in ARMOR_PARTS)for(const L of ARMOR_PARTS[k])for(const p of L)alloc(p);for(const p of CRYSTAL_PARTS)alloc(p);
   ctx.putImageData(img,0,0);MATL.tex=texFrom(MATL.cv,true,false);}
 // модель игрока (оригинальный персонаж «Странник»)
 /* скины игрока: 5 оригинальных персонажей (для выбора в профиле и в сетевой игре) */
@@ -3553,7 +3557,13 @@ function makeSkinParts(sk){const L=biped({c:{head:C(...sk.skin),body:C(...sk.bod
     if(p.nm==='head')p.bpat=p.pat='phead';if(p.nm==='armL'||p.nm==='armR')p.bpat='psleeve';if(p.nm==='body')p.pat='pbody';if(p.nm==='legL'||p.nm==='legR')p.bpat='plegs';}return L;}
 const SKIN_PARTS=SKIN_DEFS.map(makeSkinParts);
 const PLAYER_PARTS=SKIN_PARTS[0];
-function skinParts(i){return SKIN_PARTS[(i|0)>=0&&(i|0)<SKIN_PARTS.length?(i|0):0];}
+/* свои скины в формате оригинала (PNG 64×64 или старый 64×32): слоты в атласе — свой (0) и других игроков (1…7).
+   У каждого слота две модели: обычные руки (4 px) и тонкие (3 px), и второй слой — шляпа, куртка, рукава, штанины. */
+function makeCustomParts(slim){const L=biped({aw:slim?3:4,c:{head:C(0,0,0),body:C(0,0,0),leg:C(0,0,0),arm:C(0,0,0)}});const out=[];
+  for(const p of L){p.cust=true;out.push(p);}
+  for(const p of L){const o=Object.assign({},p);o.nm=p.nm+'_o';o.base=p.nm;o.inf=p.nm==='head'?.5:.25;o.ov=true;o.cust=true;out.push(o);}return out;}
+const CUSTOM_SLOTS=[];for(let i=0;i<8;i++)CUSTOM_SLOTS.push({pC:makeCustomParts(false),pS:makeCustomParts(true),owner:null,ready:false,isSlim:false,used:0});
+function skinParts(i){if(i===-1){const S=CUSTOM_SLOTS[0];if(S.ready)return S.isSlim?S.pS:S.pC;return SKIN_PARTS[0];}return SKIN_PARTS[(i|0)>=0&&(i|0)<SKIN_PARTS.length?(i|0):0];}
 // броня: увеличенные кубоиды поверх частей игрока, отдельно для каждого материала
 const ARMC={leather:C(150,95,55),chainmail:C(165,165,170),iron:C(220,220,225),golden:C(245,215,70),diamond:C(90,225,215),netherite:C(75,68,72),turtle:C(80,165,85)};
 const ARMOR_PARTS={};
@@ -4189,7 +4199,7 @@ function entLight(e){const x=Math.floor(e.x),y=Math.floor(e.y+Math.min(e.h,1.5)*
   const D=VIEW.dl;if(D&&D[3]>0)b=Math.max(b,Math.floor(D[3]-Math.hypot(e.x-D[0],e.y+.8-D[1],e.z-D[2])));return [s,b];}
 function setEntCommon(){const U=P_ENT.U;gl.useProgram(P_ENT.p);gl.uniformMatrix4fv(U.uVP,false,VIEW.VP);gl.uniform1f(U.uSun,VIEW.sun);gl.uniform1f(U.uAmb,VIEW.amb);gl.uniform1f(U.uFogA,VIEW.fogA);gl.uniform1f(U.uFogB,VIEW.fogB);
   gl.uniform3fv(U.uCam,VIEW.cam);gl.uniform3fv(U.uFogC,VIEW.fogC);gl.uniform3fv(U.uSkyL,VIEW.skyL);gl.uniform1i(U.uTex,0);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,MATL.tex);gl.uniform1f(U.uAlpha,1);gl.uniform1f(U.uGlow,0);gl.bindVertexArray(CUBE);}
-function drawPart(base,pt,R,extra){const U=P_ENT.U;let M=M4.mul(base,M4.tr(pt.px,pt.py,pt.pz));if(R)M=M4.mul(M,R);if(extra)M=M4.mul(M,extra);if(pt.rot)M=M4.mul(M,pt.rotM||(pt.rotM=M4.chain(M4.rx(pt.rot[0]),M4.ry(pt.rot[1]),M4.rz(pt.rot[2]))));M=M4.mul(M,M4.tr(pt.ox+pt.w/2,pt.oy+pt.h/2,pt.oz+pt.d/2));M=M4.mul(M,M4.sc(pt.w,pt.h,pt.d));
+function drawPart(base,pt,R,extra){const U=P_ENT.U;let M=M4.mul(base,M4.tr(pt.px,pt.py,pt.pz));if(R)M=M4.mul(M,R);if(extra)M=M4.mul(M,extra);if(pt.rot)M=M4.mul(M,pt.rotM||(pt.rotM=M4.chain(M4.rx(pt.rot[0]),M4.ry(pt.rot[1]),M4.rz(pt.rot[2]))));M=M4.mul(M,M4.tr(pt.ox+pt.w/2,pt.oy+pt.h/2,pt.oz+pt.d/2));const I=pt.inf||0;M=M4.mul(M,M4.sc(pt.w+2*I,pt.h+2*I,pt.d+2*I));/* второй слой скина чуть больше основного */
   gl.uniformMatrix4fv(U.uM,false,M);gl.uniform4fv(U.uFR,pt.fr);gl.drawElements(gl.TRIANGLES,36,gl.UNSIGNED_SHORT,0);}
 function partRot(e,pt,now){const sw=Math.sin(e.walk||0)*Math.min(1,e.walkAmp||0)*.9,t=now/1000;
   switch(pt.r){case 'legL':case 'legFL':case 'legBR':return M4.rx(sw);case 'legR':case 'legFR':case 'legBL':return M4.rx(-sw);
@@ -4227,7 +4237,7 @@ function drawPlayerModel(now,e0,parts0,st0){const e=e0||PLAYER,U=P_ENT.U,PP=part
   if(e.useT>0&&held&&(held.food||held.drink))R.armR=M4.chain(M4.rx(-1.3+Math.sin(now/60)*.1),M4.ry(-.4));
   if(held&&held.cross&&(st.loaded||e.crossT>0))R.armR=M4.chain(M4.rx(-1.45-(e.pitch||0)),M4.ry(-.25)),R.armL=M4.chain(M4.rx(-1.35-(e.pitch||0)),M4.ry(.6));
   if(e.bowT>0)R.armR=M4.chain(M4.rx(-1.5-(e.pitch||0)),M4.ry(-.1)),R.armL=M4.chain(M4.rx(-1.5-(e.pitch||0)),M4.ry(.5));
-  const mats={};for(const pt of PP){const isLeg=pt.nm==='legL'||pt.nm==='legR';mats[pt.nm]=[isLeg?M4.mul(base,M4.tr(0,0,sn?-1:0)):torso,R[pt.r]||null];}
+  const mats={};for(const pt of PP){const bn=pt.base||pt.nm,isLeg=bn==='legL'||bn==='legR';mats[pt.nm]=[isLeg?M4.mul(base,M4.tr(0,0,sn?-1:0)):torso,R[pt.r]||null];}
   gl.uniform4fv(U.uTint,hurt);for(const pt of PP){const [B,r]=mats[pt.nm];drawPart(B,pt,r);}
   // броня
   for(let sl=0;sl<4;sl++){const a=e.armor&&e.armor[sl];if(!a)continue;const d2=IT[a.id];const k=d2.mat==='golden'?'golden':d2.mat;const L=ARMOR_PARTS[k]||ARMOR_PARTS.iron;
@@ -4258,7 +4268,7 @@ function drawEntities(now){setEntCommon();const U=P_ENT.U,cam=VIEW.cam;
   // игрок от третьего лица
   HELD_CBS.length=0;if(GAME.view>0&&PLAYER.alive&&PLAYER.mode!=='spectator'&&Math.hypot(VIEW.cam[0]-PLAYER.x,VIEW.cam[1]-PLAYER.y-PLAYER.eyeH,VIEW.cam[2]-PLAYER.z)>.9)drawPlayerModel(now);
   /* другие игроки (сетевая игра) */
-  for(const e of ENTS){if(e.t!=='rplayer'||!e.alive||e.mode==='spectator')continue;const dd=(e.x-cam[0])**2+(e.z-cam[2])**2;if(dd>(VIEW.far*.8)**2)continue;if(!M4.boxIn(VIEW.planes,e.x-.6,e.y,e.z-.6,e.x+.6,e.y+2,e.z+.6))continue;drawPlayerModel(now,e,skinParts(e.skin),e.held);}
+  for(const e of ENTS){if(e.t!=='rplayer'||!e.alive||e.mode==='spectator')continue;const dd=(e.x-cam[0])**2+(e.z-cam[2])**2;if(dd>(VIEW.far*.8)**2)continue;if(!M4.boxIn(VIEW.planes,e.x-.6,e.y,e.z-.6,e.x+.6,e.y+2,e.z+.6))continue;drawPlayerModel(now,e,e.skin===-1?customPartsFor(e.nk):skinParts(e.skin),e.held);}
   // кристаллы Края
   for(const e of ENTS){if(e.t!=='crystal')continue;gl.uniform2f(U.uLt,15,15);gl.uniform4f(U.uTint,0,0,0,0);gl.uniform1f(U.uGlow,1);const t=now/1000;
     const base=M4.chain(M4.tr(e.x,e.y+1.2+Math.sin(t*2+e.id)*.25,e.z),M4.sc(1/16*1.6));drawPart(base,CRYSTAL_PARTS[0],M4.chain(M4.ry(t*1.5),M4.rx(t)));drawPart(base,CRYSTAL_PARTS[1],M4.chain(M4.ry(-t*2),M4.rz(t*1.3)));
@@ -5227,8 +5237,8 @@ const FLAT_PRESETS=[['Классический плоский','bedrock,dirt*2,g
   ['Бездонная пропасть','cobblestone*2,dirt*3,grass_block','plains'],['Пустыня','bedrock,stone*3,sandstone*52,sand*8','desert'],
   ['Для редстоуна','bedrock,stone*3,sandstone*60','desert',false],['Пустота','air','plains',false]];
 function titleScreen(){MENU_PANO=true;GAME.on=false;menu(`<img class="logoimg" src="${logoURL()}" alt="BlockCraft" draggable="false"><div class="splash">${['Бесконечные миры!','Собрано из кубиков!','Генерируется на лету!','Без единой картинки!','С 3D-кирками!','Теперь с драконом!'][Math.floor(Math.random()*6)]}</div>
-  <div class="mcol">${btn('Одиночная игра','single')}${btn('Сетевая игра','multi')}${btn('Настройки','settings')}${btn('Об игре','about')}</div><div class="foot">BlockCraft 1.0 · процедурная песочница · WebGL2</div>`);
-  bindMenu({single:worldsScreen,multi:()=>multiScreen(),settings:()=>settingsScreen(titleScreen),about:aboutScreen});}
+  <div class="mcol">${btn('Одиночная игра','single')}${btn('Сетевая игра','multi')}${btn('Аккаунт','account')}${btn('Настройки','settings')}${btn('Об игре','about')}</div><div class="foot">BlockCraft 1.0 · процедурная песочница · WebGL2</div>`);
+  bindMenu({single:worldsScreen,multi:()=>multiScreen(),account:()=>accountScreen(),settings:()=>settingsScreen(titleScreen),about:aboutScreen});}
 function aboutScreen(){menu(`<div class="panel"><h2>Об игре</h2><p>BlockCraft — песочница из кубиков, целиком помещающаяся в один файл. Все текстуры, звуки, модели мобов и миры создаются процедурно прямо в браузере: шум Simplex, воксельный свет, генерация в Web Worker, сохранение в IndexedDB.</p>
   <p>Кирки — детализированные 3D-модели (деревянная, каменная, железная, золотая, алмазная, незеритовая) с физически корректным освещением.</p><p>Цель: пройти путь от первого бревна до победы над Эндер-драконом.</p>
   <p class="g">Управление: WASD, мышь, Пробел, Shift, Ctrl, E, Q, F, F1–F5, T и «/» — чат и команды.</p>${btn('Назад','back')}</div>`);bindMenu({back:titleScreen});}
@@ -5828,7 +5838,7 @@ function netInit(){if(!SET.friends)SET.friends={};if(SET.skin===undefined)SET.sk
 function netIce(){const L=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
   if(SET.turnUrl)L.push({urls:SET.turnUrl.split(/\s*,\s*/),username:SET.turnUser||'',credential:SET.turnPass||''});return L;}
 /* ---------- скин: 2D-превью (кукла в инвентаре, выбор скина) ---------- */
-function skin2D(x,i,X,Y,u){const S=SKIN_DEFS[i]||SKIN_DEFS[0];const r=c=>`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;const px=(cx,cy,w,h,c)=>{x.fillStyle=r(c);x.fillRect(X+cx*u,Y+cy*u,w*u,h*u);};
+function skin2D(x,i,X,Y,u){if(i===-1&&SKIN_IMG){skin2DImg(x,SKIN_IMG,!!SET.skinSlim,X,Y,u);return;}const S=SKIN_DEFS[i]||SKIN_DEFS[0];const r=c=>`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`;const px=(cx,cy,w,h,c)=>{x.fillStyle=r(c);x.fillRect(X+cx*u,Y+cy*u,w*u,h*u);};
   const dk=(c,k)=>[c[0]*k,c[1]*k,c[2]*k];
   px(4,0,8,8,S.skin);/* голова */
   if(S.style==='mask'){px(4,0,8,8,S.hr);px(4,4,8,1,S.skin);px(5,4,1,1,[245,245,245]);px(6,4,1,1,S.eye);px(9,4,1,1,S.eye);px(10,4,1,1,[245,245,245]);px(4,3,8,1,S.acc);}
@@ -5838,6 +5848,9 @@ function skin2D(x,i,X,Y,u){const S=SKIN_DEFS[i]||SKIN_DEFS[0];const r=c=>`rgb(${
   px(4,8,8,12,S.body);px(6,8,4,1,dk(S.body,.7));if(S.stripe)px(4,13,8,1,S.stripe);if(S.coat)px(7,8,2,12,S.coat);if(S.belt)px(4,19,8,1,S.belt);/* туловище */
   px(0,8,4,12,S.skin);px(12,8,4,12,S.skin);px(0,8,4,4,S.sl);px(12,8,4,4,S.sl);/* руки */
   px(4,20,4,12,S.leg);px(8,20,4,12,S.leg);px(4,30,8,2,S.boot);/* ноги */}
+function skin2DImg(x,d,slim,X,Y,u){const aw=slim?3:4;const bl=(sx,sy,w,h,dx,dy,ov)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++){const s=((sy+j)*64+sx+i)*4;if(ov&&d[s+3]<26)continue;x.fillStyle=`rgb(${d[s]},${d[s+1]},${d[s+2]})`;x.fillRect(X+(dx+i)*u,Y+(dy+j)*u,u,u);}};
+  bl(8,8,8,8,4,0);bl(20,20,8,12,4,8);bl(44,20,aw,12,4-aw,8);bl(36,52,aw,12,12,8);bl(4,20,4,12,4,20);bl(20,52,4,12,8,20);
+  bl(40,8,8,8,4,0,1);bl(20,36,8,12,4,8,1);bl(44,36,aw,12,4-aw,8,1);bl(52,52,aw,12,12,8,1);bl(4,36,4,12,4,20,1);bl(4,52,4,12,8,20,1);}
 /* ---------- сигнальный сервер (PeerJS) или локальный канал (вкладки одного браузера) ---------- */
 function netUrl(){return (SET.netSrv||'').trim()||'wss://0.peerjs.com:443/peerjs';}
 function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc||NET.mq)netDisconnect(true);NET.st='connecting';NET.err='';NET.id=nickId(SET.nick);netUI();
@@ -5863,7 +5876,7 @@ function netConnect(){netInit();if(!nickOk(SET.nick))return;if(NET.ws||NET.bc||N
     if(was==='online'&&(NET.hosting||NET.guest))chatMsg('Связь с сервером поиска потеряна — уже подключённые игроки продолжают играть','#fa6');};
   ws.onerror=()=>{if(NET.st==='connecting'){NET.err='Сервер поиска недоступен';}};}
 function netOnline(){NET.st='online';NET.err='';NET.retry=0;NET.noRetry=false;clearInterval(NET.hb);if(NET.ws)NET.hb=setInterval(()=>{try{NET.ws&&NET.ws.readyState===1&&NET.ws.send(JSON.stringify({type:'HEARTBEAT'}));}catch(e){}},5000);
-  netUI();netPresAll();/* отправленные заявки повторяем, когда снова в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}}
+  netUI();netPresAll();if(NET.hosting)netAnnounce(true);/* отправленные заявки повторяем, когда снова в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}}
 function netSigErr(t){NET.st='error';NET.err=t;netUI();}
 function netDisconnect(keepState){clearInterval(NET.hb);clearTimeout(NET.retryT);clearTimeout(NET.mqT);if(NET.mq){for(const c of NET.mq.conns)c.close();NET.mq=null;}if(NET.ws){const w=NET.ws;NET.ws=null;try{w.close();}catch(e){}}if(NET.bc){try{NET.bc.close();}catch(e){}NET.bc=null;}if(!keepState){NET.st='off';netUI();}}
 /* ---------- MQTT поверх WebSocket: публичные брокеры как «почтовые ящики» для поиска друзей ----------
@@ -5919,13 +5932,16 @@ function netSig(m){const P=m.payload||{};const from=P.from||idNick(m.src),k=nkey
 /* друзья и присутствие (через сигнальный сервер, без прямого соединения) */
 function netAppMsg(from,k,P){const F=SET.friends,f=F[k];
   switch(P.k){
-    case 'ping':netApp(from,{k:'pong',open:NET.hosting&&!!(f&&f.s==='ok'),world:NET.hosting?NET.wname:'',n:NET.guests.size+1,fr:!!(f&&f.s==='ok')});break;
-    case 'pong':{const pr=NET.pres[k]||(NET.pres[k]={});pr.on=true;pr.open=!!P.open;pr.world=P.world||'';pr.n=P.n||1;pr.t=Date.now();if(NET.pend.has('p'+k)){clearTimeout(NET.pend.get('p'+k));NET.pend.delete('p'+k);}
+    case 'ping':netApp(from,{k:'pong',open:NET.hosting&&!!(f&&f.s==='ok'),world:NET.hosting?NET.wname:'',n:NET.guests.size+1,fr:!!(f&&f.s==='ok'),sk:SET.skin|0});break;
+    case 'pong':{const pr=NET.pres[k]||(NET.pres[k]={});pr.on=true;pr.open=!!P.open;pr.world=P.world||'';pr.n=P.n||1;pr.sk=P.sk|0;pr.t=Date.now();if(NET.pend.has('p'+k)){clearTimeout(NET.pend.get('p'+k));NET.pend.delete('p'+k);}
       if(f&&f.s==='out'&&P.fr){f.s='ok';saveSet();}netUI();break;}
     case 'freq':if(f&&f.s==='ok'){netApp(from,{k:'facc'});break;}if(f&&f.s==='out'){f.s='ok';saveSet();netApp(from,{k:'facc'});toast(from+' теперь ваш друг');netUI();break;}
       F[k]={n:from,s:'in'};saveSet();toast('Заявка в друзья от '+from);chatMsg&&GAME.on&&chatMsg(from+' хочет добавить вас в друзья (меню «Сетевая игра»)','#9cf');netUI();break;
     case 'facc':if(f&&(f.s==='out'||f.s==='in')){f.s='ok';f.n=from;saveSet();toast(from+' принял(а) заявку в друзья');netPres(from);netUI();}break;
     case 'fdel':if(f){delete F[k];saveSet();netUI();}break;
+    case 'wopen':if(f&&f.s==='ok'){const pr=NET.pres[k]||(NET.pres[k]={});const was=pr.on&&pr.open;pr.on=true;pr.open=true;pr.world=P.world||'';pr.n=P.n||1;pr.sk=P.sk|0;pr.t=Date.now();
+      if(!was&&!NET.guest){toast(from+' открыл(а) мир «'+(P.world||'')+'»');if(GAME.on)chatMsg(from+' открыл(а) мир «'+(P.world||'')+'» для друзей — зайти можно через «Сетевая игра»','#9cf');}netUI();}break;
+    case 'wclose':{const pr=NET.pres[k];if(pr){pr.open=false;pr.t=Date.now();}netUI();break;}
     case 'deny':if(NET.joinCb){NET.joinCb(P.why||'Хозяин не пустил в мир');}break;}}
 function netPres(nick){const k=nkey(nick);if(NET.st!=='online')return;if(!netApp(nick,{k:'ping'}))return;if(NET.pend.has('p'+k))clearTimeout(NET.pend.get('p'+k));
   NET.pend.set('p'+k,setTimeout(()=>{NET.pend.delete('p'+k);netNoReply(k);},7000));}
@@ -5954,17 +5970,19 @@ class NPeer{constructor(nick,init){this.nick=nick;this.k=nkey(nick);this.open=fa
   busy(){return this.dc&&this.dc.bufferedAmount>600000;}
   close(why){if(this.dead)return;this.dead=true;this.open=false;try{this.dc&&this.dc.close();}catch(e){}try{this.pc.close();}catch(e){}NET.peers.delete(this.k);netPeerClose(this,why);}}
 function netData(p,data){if(typeof data!=='string'){const u=new Uint8Array(data),L=new DataView(data).getUint32(0);const o=JSON.parse(new TextDecoder().decode(u.subarray(4,4+L)));o.bin=data.slice(4+L);netMsg(p,o);return;}netMsg(p,JSON.parse(data));}
-function netPeerOpen(p){if(p===NET.host){p.send({k:'hello',nick:myNick(),skin:SET.skin|0,ver:NET_VER});}}
+function netPeerOpen(p){if(p===NET.host){p.send({k:'hello',nick:myNick(),skin:SET.skin|0,png:SET.skin===-1?SET.skinPng:null,slim:!!SET.skinSlim,ver:NET_VER});}}
 function netPeerClose(p,why){if(p===NET.host){NET.host=null;if(NET.joinCb){NET.joinCb('Не удалось подключиться: '+why);return;}if(NET.guest)guestLost('Связь с хозяином потеряна ('+why+')');return;}
   const g=NET.guests.get(p.k);if(g){netGuestLeave(g,why);}}
 function netMsg(p,o){NET.dbgR[o.k]=(NET.dbgR[o.k]||0)+1;if(p===NET.host)return guestMsg(o);const g=NET.guests.get(p.k);if(o.k==='hello'&&!g)return hostHello(p,o);if(g)hostMsg(g,o);}
 /* ============================================================
    ХОЗЯИН
    ============================================================ */
+/* хозяин сообщает друзьям, что мир открыт (или закрыт) — у них он сразу появляется в «Сетевой игре» */
+function netAnnounce(open){if(NET.st!=='online')return;for(const k in SET.friends){const f=SET.friends[k];if(f.s!=='ok')continue;netApp(f.n,open?{k:'wopen',world:NET.wname||'Мир',n:NET.guests.size+1,sk:SET.skin|0}:{k:'wclose'});}}
 function netOpenWorld(){if(!GAME.on||NET.guest)return;if(!nickOk(SET.nick)){toast('Сначала задайте ник в меню «Сетевая игра»');return;}if(NET.st!=='online')netConnect();
-  NET.hosting=true;DB.getWorld(GAME.wid).then(w=>{NET.wname=w?w.name:'Мир';});chatMsg('Мир открыт для друзей. Друзья могут зайти через меню «Сетевая игра».','#8f8');netPresAll();}
+  NET.hosting=true;NET.wname=NET.wname||'Мир';DB.getWorld(GAME.wid).then(w=>{NET.wname=w?w.name:'Мир';netAnnounce(true);});chatMsg('Мир открыт для друзей. Друзья могут зайти через меню «Сетевая игра».','#8f8');netPresAll();}
 function netCloseWorld(why){if(!NET.hosting)return;for(const g of [...NET.guests.values()]){g.p.send({k:'bye',why:why||'Хозяин закрыл мир'});const pp=g.p;setTimeout(()=>pp.close('мир закрыт'),300);netGuestLeave(g,'мир закрыт',true);}
-  NET.hosting=false;NET.flushCold();chatMsg('Мир закрыт для друзей','#fa6');}
+  NET.hosting=false;NET.flushCold();netAnnounce(false);chatMsg('Мир закрыт для друзей','#fa6');}
 function hostOffer(from,k,P){const f=SET.friends[k];
   if(!NET.hosting||!GAME.on||NET.guest){netApp(from,{k:'deny',why:'Мир друга сейчас не открыт для сети'});return;}
   if(!f||f.s!=='ok'){netApp(from,{k:'deny',why:'Вы не в списке друзей у '+myNick()});return;}
@@ -5973,10 +5991,13 @@ function hostOffer(from,k,P){const f=SET.friends[k];
 function hostHello(p,o){const W=GAME.wid;DB.getWorld(W).then(w=>{if(!w||!NET.hosting){p.send({k:'bye',why:'Мир закрыт'});return;}
   const S=w.state||{},gs=(NET.gstates||{})[p.k]||null;
   const g={p,k:p.k,nick:o.nick,skin:o.skin|0,d:gs?gs.dim||0:0,x:0,y:0,z:0,yaw:0,pitch:0,sn:false,held:null,armor:[],mode:'survival',alive:true,ent:null,ps:gs,chReq:0,lastPos:0};
-  NET.guests.set(p.k,g);
+  NET.guests.set(p.k,g);g.png=o.png||null;g.slim=!!o.slim;if(g.png)netSkinFor(g.k,g.png,g.slim);
+  /* обмен своими скинами: новичку — все, остальным — скин новичка */
+  const sk=[];if(SET.skin===-1&&SET.skinPng)sk.push({k:'skin',n:myNick(),png:SET.skinPng,slim:!!SET.skinSlim});for(const o2 of NET.guests.values())if(o2!==g&&o2.png)sk.push({k:'skin',n:o2.nick,png:o2.png,slim:o2.slim});
+  setTimeout(()=>{for(const m of sk)p.send(m);if(g.png)for(const o2 of NET.guests.values())if(o2!==g)o2.p.send({k:'skin',n:g.nick,png:g.png,slim:g.slim});},400);
   p.send({k:'welcome',w:{name:w.name,seed:w.seed,seedStr:w.seedStr,opts:{type:w.type,biome:w.biome,layers:w.layers,structs:w.structs,calm:!!w.calm}},tod:GAME.tod,day:GAME.day,weather:{rain:WEATHER.rain,thunder:WEATHER.thunder,want:WEATHER.want,wantT:WEATHER.wantT},
     diff:GAME.difficulty,spawn:GAME.spawn,hostDim:CUR.id,ps:gs,mode:(w.mode==='hardcore'||w.mode==='spectator')?'survival':w.mode,host:myNick()});
-  chatAll(o.nick+' заходит в мир','#ff8');sfx('levelup',PLAYER.x,PLAYER.y,PLAYER.z,{vol:.4,ui:true});});}
+  chatAll(o.nick+' заходит в мир','#ff8');netAnnounce(true);sfx('levelup',PLAYER.x,PLAYER.y,PLAYER.z,{vol:.4,ui:true});});}
 function netGuestLeave(g,why,silent){if(!NET.guests.has(g.k))return;NET.guests.delete(g.k);if(g.ps){NET.gstates=NET.gstates||{};NET.gstates[g.k]=g.ps;}
   if(g.ent){g.ent.dead=true;const i=ENTS.indexOf(g.ent);if(i>=0)ENTS.splice(i,1);g.ent=null;}nameTagDrop(g.k);if(!silent)chatAll(g.nick+' покидает мир','#ff8');}
 function hostMsg(g,o){switch(o.k){
@@ -6099,6 +6120,7 @@ function guestMsg(o){switch(o.k){
   case 'chat':chatMsg(o.t,o.col);break;
   case 'snds':for(const s of o.L)SND.play(s[0],s[1],s[2],s[3],s[4]||undefined);break;
   case 'te':guestTile(o);break;
+  case 'skin':netSkinFor(nkey(o.n),o.png,o.slim);break;
   case 'used':{if(o.take)consumeSel(1);if(o.dmg)damageItem('sel',o.dmg);if(o.swap){const st=selStack();if(st){consumeSel(1);giveItem({id:IK[o.swap],n:1});}}UI.dirty=true;break;}}}
 function guestStart(W){NET.guest=true;NET.hostNick=W.host;NET.hostDim=W.hostDim;NET.gh.clear();NET.others.clear();NET.pendSets.clear();
   menu('');showLoading('Загрузка мира '+W.host+'…',0);stopWorld();MENU_PANO=false;GAME.egg67=null;RAID=null;HERO=null;GAME.wid=null;GAME.seed=W.w.seed;GAME.seedStr=W.w.seedStr;
@@ -6184,7 +6206,7 @@ function guestTick(dt){if(!NET.guest||!NET.host)return;const p=PLAYER;
   NET.tPst+=dt;if(NET.tPst>=10){NET.tPst=0;NET.host.send({k:'pst',ps:guestPS()});}}
 /* общий тик сети (вызывается каждый кадр) */
 function netTick(dt){if(NET.hosting&&GAME.on)hostTick(dt);if(NET.guest&&GAME.on)guestTick(dt);
-  NET.tPres+=dt;if(NET.tPres>20){NET.tPres=0;if(NET.st==='online'){netPresAll();/* заявки, которые ещё не приняты, отправляем повторно — дойдут, как только друг будет в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}}}
+  NET.tPres+=dt;if(NET.tPres>20){NET.tPres=0;if(NET.st==='online'){netPresAll();/* заявки, которые ещё не приняты, отправляем повторно — дойдут, как только друг будет в сети */for(const k in SET.friends){const f=SET.friends[k];if(f.s==='out')netApp(f.n,{k:'freq'});}if(NET.hosting)netAnnounce(true);}}
   if(NET.hosting&&GAME.on){NET.tCold=(NET.tCold||0)+dt;if(NET.tCold>8){NET.tCold=0;NET.flushCold();}}
   nameTags();}
 function sayChat(v){const t=v.slice(0,200);if(NET.guest&&NET.host){NET.host.send({k:'chat',t});return;}if(NET.hosting){chatAll('<'+myNick()+'> '+t);return;}chatMsg('<'+(SET.nick||'Игрок')+'> '+t);}
@@ -6206,31 +6228,34 @@ function netUI(){if(MULTI_ON)multiScreen(true);}
 function multiScreen(refresh){netInit();MULTI_ON=true;const F=SET.friends;const st=NET.st;
   if(!refresh&&nickOk(SET.nick)&&st!=='online'&&st!=='connecting'&&!NET.noRetry)netConnect();
   if(!refresh)netPresAll();
-  const stTxt=!nickOk(SET.nick)?'<span class="neterr">Задайте ник, чтобы играть с друзьями</span>':st==='online'?`<span class="neton">● В сети как <b>${esc(SET.nick)}</b>${NET.mq?' <span class="g">(серверов поиска: '+(NET.mqN||0)+' из '+NET.mq.conns.length+')</span>':''}</span>`:st==='connecting'?'<span class="g">○ Подключение…</span>':`<span class="neterr">○ Нет связи${NET.err?': '+esc(NET.err):''}</span>`;
+  const stTxt=!nickOk(SET.nick)?'<span class="neterr">Сначала задайте ник в меню «Аккаунт»</span>':st==='online'?`<span class="neton">● В сети как <b>${esc(SET.nick)}</b>${NET.mq?' <span class="g">(серверов поиска: '+(NET.mqN||0)+' из '+NET.mq.conns.length+')</span>':''}</span>`:st==='connecting'?'<span class="g">○ Подключение…</span>':`<span class="neterr">○ Нет связи${NET.err?': '+esc(NET.err):''}</span>`;
   const rows=Object.keys(F).sort((a,b)=>{const o=x=>F[x].s==='in'?0:F[x].s==='ok'?(NET.pres[x]&&NET.pres[x].open?1:NET.pres[x]&&NET.pres[x].on?2:3):4;return o(a)-o(b)||a.localeCompare(b);}).map(k=>{const f=F[k],pr=NET.pres[k]||{};let s,b='';
     if(f.s==='in'){s='<span class="g">хочет добавить вас в друзья</span>';b=btn('Принять','acc:'+k)+btn('Отклонить','del:'+k);}
     else if(f.s==='out'){s='<span class="g">заявка отправлена — ждём ответа</span>';b=btn('Отменить','del:'+k);}
     else{s=pr.on?(pr.open?`<span class="neton">в сети · открыт мир «${esc(pr.world)}» · игроков: ${pr.n}</span>`:'<span class="neton">в сети</span>'):(pr.t?'<span class="g">не в сети</span>':'<span class="g">…</span>');
       b=(pr.on&&pr.open?btn('Зайти','join:'+k):'')+btn('Удалить','rm:'+k);}
     return `<div class="fri"><b>${esc(f.n)}</b>${s}<span class="frb">${b}</span></div>`;}).join('')||'<div class="g" style="padding:10px">Друзей пока нет. Добавьте друга по нику — он увидит заявку, когда будет в сети.</div>';
-  const skins=SKIN_DEFS.map((s,i)=>`<div class="skn${(SET.skin|0)===i?' on':''}" data-skin="${i}"><canvas width="64" height="128" data-sk="${i}"></canvas><span>${s.name}</span></div>`).join('');
+  const open=Object.keys(F).filter(k=>F[k].s==='ok'&&NET.pres[k]&&NET.pres[k].on&&NET.pres[k].open);
+  const worlds=open.map(k=>{const pr=NET.pres[k];return `<div class="wcard" data-join="${k}"><canvas width="32" height="32" data-face="${Math.max(0,pr.sk|0)}"></canvas><div class="wct"><b>${esc(pr.world||'Мир')}</b><span>Хозяин: ${esc(F[k].n)} · игроков: ${pr.n||1}</span></div><span class="wgo">Играть ▶</span></div>`;}).join('')
+    ||`<div class="g" style="padding:10px">${NET.st==='online'?'Сейчас никто из друзей не открыл свой мир. Когда друг нажмёт «Открыть для друзей», его мир сразу появится здесь.':'Подключитесь к сети, чтобы видеть миры друзей.'}</div>`;
   const html=`<div class="panel wide mp"><h2>Сетевая игра</h2><div class="netst">${stTxt}${st!=='online'&&nickOk(SET.nick)?' '+btn('Подключиться','conn','sm'):''}</div>
-    <h3>Профиль</h3><div class="mrow"><input id="mpnick" maxlength="16" placeholder="Ваш ник" value="${esc(SET.nick||'')}">${btn('Сохранить ник','nick')}</div>
-    <div class="skins">${skins}</div>
+    ${nickOk(SET.nick)?'':`<div class="mrow">${btn('Открыть «Аккаунт», чтобы задать ник','acc')}</div>`}
+    <h3>Миры друзей</h3><div class="wopen">${worlds}</div>
     <h3>Друзья</h3><div class="mrow"><input id="mpfr" maxlength="16" placeholder="Ник друга">${btn('Добавить в друзья','add')}</div>
     <div class="flist">${rows}</div>
     <p class="g small">Чтобы друзья могли зайти к вам: откройте свой мир, нажмите паузу → «Открыть для друзей». Заходить могут только друзья (заявка должна быть принята).</p>
     <div class="mrow">${btn('Настройки сети','nset')}${btn('Назад','back')}</div></div>`;
-  const keepFr=$('mpfr')?$('mpfr').value:'',keepNick=$('mpnick')&&document.activeElement===$('mpnick')?$('mpnick').value:null;
-  menu(html);if(keepFr)$('mpfr').value=keepFr;if(keepNick!==null){$('mpnick').value=keepNick;$('mpnick').focus();}
+  const keepFr=$('mpfr')?$('mpfr').value:'',frFocus=document.activeElement===$('mpfr');
+  menu(html);if(keepFr)$('mpfr').value=keepFr;if(frFocus)$('mpfr').focus();
   for(const c of document.querySelectorAll('canvas[data-sk]')){const x=c.getContext('2d');x.imageSmoothingEnabled=false;skin2D(x,+c.dataset.sk,0,0,4);}
-  for(const d of document.querySelectorAll('.skn'))d.onclick=()=>{SET.skin=+d.dataset.skin;saveSet();multiScreen(true);};
+  for(const c of document.querySelectorAll('canvas[data-face]')){const x=c.getContext('2d');x.imageSmoothingEnabled=false;skin2D(x,+c.dataset.face,-16,0,4);}
+  for(const d of document.querySelectorAll('.wcard'))d.onclick=()=>{const f=SET.friends[d.dataset.join];if(f){MULTI_ON=false;netJoin(f.n);}};
   const map={back:()=>{MULTI_ON=false;titleScreen();},nset:netSettings,conn:()=>{NET.noRetry=false;netConnect();},
-    nick:()=>{const n=$('mpnick').value.trim();if(!nickOk(n)){toast('Ник: 3–16 символов — буквы, цифры, _ и -');return;}if(n!==SET.nick){SET.nick=n;saveSet();NET.noRetry=false;netConnect();}multiScreen(true);toast('Ник сохранён');},
+    acc:()=>accountScreen(()=>multiScreen()),
     add:()=>{const r=friendAdd($('mpfr').value);if(r){toast(r);return;}$('mpfr').value='';toast('Заявка отправлена');multiScreen(true);}};
   for(const k in F){map['acc:'+k]=()=>friendAccept(k);map['del:'+k]=()=>friendDel(k);map['rm:'+k]=()=>{if(confirm('Удалить '+F[k].n+' из друзей?'))friendDel(k);};map['join:'+k]=()=>{MULTI_ON=false;netJoin(F[k].n);};}
   bindMenu(map);
-  const inp=$('mpfr');if(inp)inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.add();};const ni=$('mpnick');if(ni)ni.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.nick();};
+  const inp=$('mpfr');if(inp)inp.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.add();};
   clearTimeout(multiScreen.t);multiScreen.t=setTimeout(()=>{if(MULTI_ON&&$('menu').querySelector('.mp')&&document.activeElement.tagName!=='INPUT'){netPresAll();multiScreen(true);}},6000);}
 function netSettings(){MULTI_ON=false;menu(`<div class="panel"><h2>Настройки сети</h2>
   <p class="g small">Сервер поиска нужен только чтобы найти друга по нику и передать приглашение; сама игра идёт напрямую между устройствами. По умолчанию игра подключается сразу к двум бесплатным публичным серверам (EMQX и HiveMQ). Поле можно оставить пустым. У всех друзей настройка должна совпадать. Можно указать свои MQTT-серверы (wss://…/mqtt через запятую), сервер PeerJS (адрес с «peerjs») или «local» для проверки в вкладках одного браузера.</p>
@@ -6245,6 +6270,65 @@ function netSettings(){MULTI_ON=false;menu(`<div class="panel"><h2>Настро�
 /* при запуске игры сразу выходим в сеть, чтобы друзья видели нас и заявки доходили */
 setTimeout(()=>{netInit();if(nickOk(SET.nick))netConnect();},1500);
 addEventListener('beforeunload',()=>{try{if(NET.guest&&NET.host){NET.host.send({k:'pst',ps:guestPS()});NET.host.send({k:'bye'});}if(NET.hosting)for(const g of NET.guests.values())g.p.send({k:'bye',why:'Хозяин вышел из игры'});}catch(e){}});
+/* ============================================================
+   СВОИ СКИНЫ (формат оригинала): загрузка, перевод старого 64×32 в 64×64, раскраска модели
+   ============================================================ */
+const SKREG={head:[0,0],body:[16,16],armR:[40,16],armL:[32,48],legR:[0,16],legL:[16,48]},SKREGO={head:[32,0],body:[16,32],armR:[40,32],armL:[48,48],legR:[0,32],legL:[0,48]};
+/* старый формат 64×32: левые рука и нога — зеркальные копии правых (как делает оригинал) */
+function skinTo64(d32){const o=new Uint8ClampedArray(64*64*4);o.set(d32.subarray(0,64*32*4));
+  const cp=(x,y,dx,dy,w,h)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++){const s=((y+j)*64+(x+w-1-i))*4,t=((y+dy+j)*64+(x+dx+i))*4;for(let c=0;c<4;c++)o[t+c]=o[s+c];}};
+  cp(4,16,16,32,4,4);cp(8,16,16,32,4,4);cp(0,20,24,32,4,12);cp(4,20,16,32,4,12);cp(8,20,8,32,4,12);cp(12,20,16,32,4,12);
+  cp(44,16,-8,32,4,4);cp(48,16,-8,32,4,4);cp(40,20,0,32,4,12);cp(44,20,-8,32,4,12);cp(48,20,-16,32,4,12);cp(52,20,-8,32,4,12);
+  /* в старых скинах «шляпа» часто залита сплошным цветом — тогда её не показываем */
+  let solid=true;for(let y=0;y<16&&solid;y++)for(let x=32;x<64;x++)if(o[(y*64+x)*4+3]<128){solid=false;break;}if(solid)for(let y=0;y<16;y++)for(let x=32;x<64;x++)o[(y*64+x)*4+3]=0;return o;}
+function skinSlimGuess(d){return d[(20*64+54)*4+3]===0&&d[(31*64+55)*4+3]===0&&d[(16*64+50)*4+3]===0;}
+/* PNG (data URL) → пиксели 64×64; null, если формат не тот */
+function skinLoad(url){return new Promise(res=>{const im=new Image();im.onload=()=>{if(im.width!==64||(im.height!==64&&im.height!==32)){res(null);return;}
+    const c=document.createElement('canvas');c.width=64;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);let d=x.getImageData(0,0,64,im.height).data;if(im.height===32)d=skinTo64(d);res(d);};
+  im.onerror=()=>res(null);im.src=url;});}
+function skinPaint(S,d,slim){const parts=slim?S.pS:S.pC;const ctx=MATL.cv.getContext('2d');
+  for(const p of parts){const bn=p.base||p.nm;const [U,V]=(p.ov?SKREGO:SKREG)[bn];const w=p.w,h=p.h,dd=p.d;
+    const F=[[U+dd,V+dd,w,h],[U+2*dd+w,V+dd,w,h],[U+dd+w,V+dd,dd,h],[U,V+dd,dd,h],[U+dd,V,w,dd],[U+dd+w,V,w,dd]];
+    for(let fi=0;fi<6;fi++){const [tx,ty,fw,fh]=p.rx[fi],[sx,sy]=F[fi];const id=ctx.createImageData(fw,fh);
+      for(let y=0;y<fh;y++)for(let x=0;x<fw;x++){const s=((sy+Math.floor(y*F[fi][3]/fh))*64+sx+Math.floor(x*F[fi][2]/fw))*4,t=(y*fw+x)*4;
+        id.data[t]=d[s];id.data[t+1]=d[s+1];id.data[t+2]=d[s+2];id.data[t+3]=p.ov?(d[s+3]>=26?255:0):255;}
+      ctx.putImageData(id,tx,ty);}}
+  gl.bindTexture(gl.TEXTURE_2D,MATL.tex);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,MATL.cv);S.isSlim=!!slim;S.ready=true;}
+/* свой скин — слот 0 */
+let SKIN_IMG=null;
+async function skinApplyLocal(){if(SET.skin!==-1||!SET.skinPng){SKIN_IMG=null;return;}const d=await skinLoad(SET.skinPng);if(!d){SET.skin=0;saveSet();return;}
+  SKIN_IMG=d;skinPaint(CUSTOM_SLOTS[0],d,!!SET.skinSlim);CUSTOM_SLOTS[0].owner='@me';}
+/* скины других игроков — слоты 1…7 */
+const SKIN_NET=new Map();
+function customPartsFor(k){const r=SKIN_NET.get(k);if(r&&r.slot&&r.slot.ready&&r.slot.owner===k){r.slot.used=performance.now();return r.slot.isSlim?r.slot.pS:r.slot.pC;}return SKIN_PARTS[0];}
+async function netSkinFor(k,png,slim){if(!png){SKIN_NET.delete(k);return;}const old=SKIN_NET.get(k);if(old&&old.png===png&&old.slot&&old.slot.owner===k)return;
+  const d=await skinLoad(png);if(!d)return;let slot=CUSTOM_SLOTS.slice(1).find(s=>s.owner===k)||CUSTOM_SLOTS.slice(1).find(s=>!s.owner)||CUSTOM_SLOTS.slice(1).sort((a,b)=>a.used-b.used)[0];
+  slot.owner=k;slot.used=performance.now();skinPaint(slot,d,!!slim);SKIN_NET.set(k,{png,slim:!!slim,slot});}
+setTimeout(()=>{try{netInit();skinApplyLocal();}catch(e){console.warn(e);}},600);
+/* ============================================================
+   МЕНЮ «АККАУНТ»: ник и скин
+   ============================================================ */
+function accountScreen(back){netInit();MULTI_ON=false;const custom=SET.skin===-1&&SET.skinPng;
+  const tiles=SKIN_DEFS.map((s,i)=>`<div class="skn${(SET.skin|0)===i&&SET.skin!==-1?' on':''}" data-skin="${i}"><canvas width="64" height="128" data-sk="${i}"></canvas><span>${s.name}</span></div>`).join('')
+    +(SET.skinPng?`<div class="skn${custom?' on':''}" data-skin="-1"><canvas width="64" height="128" data-sk="-1"></canvas><span>Свой скин</span></div>`:'');
+  menu(`<div class="panel wide mp"><h2>Аккаунт</h2>
+    <h3>Ник</h3><div class="mrow"><input id="acnick" maxlength="16" placeholder="Ваш ник (3–16 символов)" value="${esc(SET.nick||'')}">${btn('Сохранить ник','nick')}</div>
+    <p class="g small">По нику вас находят друзья. Буквы, цифры, «_» и «-».</p>
+    <h3>Скин</h3><div class="skins">${tiles}</div>
+    <div class="mrow">${btn('Загрузить свой скин (PNG)','up')}${SET.skinPng?btn('Удалить свой скин','rmsk'):''}</div>
+    ${SET.skinPng?`<label class="chk"><input type="checkbox" id="acslim" ${SET.skinSlim?'checked':''}> Тонкие руки (модель «Алекс»)</label>`:''}
+    <p class="g small">Подходят обычные скины в формате оригинала: PNG 64×64 или старый 64×32, с вторым слоем (шляпа, куртка, рукава). Друзья в сетевой игре увидят ваш скин.</p>
+    <input type="file" id="acfile" accept="image/png,image/*" style="display:none">
+    <div class="mrow">${btn('Назад','back')}</div></div>`);
+  for(const c of document.querySelectorAll('canvas[data-sk]')){const x=c.getContext('2d');x.imageSmoothingEnabled=false;skin2D(x,+c.dataset.sk,0,0,4);}
+  for(const d of document.querySelectorAll('.skn'))d.onclick=()=>{const v=+d.dataset.skin;SET.skin=v;saveSet();if(v===-1)skinApplyLocal().then(()=>accountScreen(back));else accountScreen(back);};
+  const f=$('acfile');f.onchange=()=>{const file=f.files&&f.files[0];if(!file)return;const rd=new FileReader();rd.onload=async()=>{const url=rd.result;const d=await skinLoad(url);
+      if(!d){toast('Нужен PNG 64×64 или 64×32 — скин в формате оригинала');return;}SET.skinPng=url;SET.skinSlim=skinSlimGuess(d);SET.skin=-1;saveSet();await skinApplyLocal();toast('Скин загружен');accountScreen(back);};rd.readAsDataURL(file);};
+  const sl=$('acslim');if(sl)sl.onchange=()=>{SET.skinSlim=sl.checked;saveSet();skinApplyLocal().then(()=>accountScreen(back));};
+  const ni=$('acnick');ni.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter')map.nick();};
+  const map={back:()=>(back||titleScreen)(),up:()=>f.click(),rmsk:()=>{SET.skinPng=null;if(SET.skin===-1)SET.skin=0;saveSet();CUSTOM_SLOTS[0].ready=false;accountScreen(back);},
+    nick:()=>{const n=$('acnick').value.trim();if(!nickOk(n)){toast('Ник: 3–16 символов — буквы, цифры, _ и -');return;}if(n!==SET.nick){SET.nick=n;saveSet();NET.noRetry=false;netConnect();}toast('Ник сохранён');accountScreen(back);}};
+  bindMenu(map);}
 
 /* ============================================================
    ИГРА: состояние, загрузка, менеджер чанков, цикл, ввод
