@@ -173,6 +173,8 @@ function RNG(seed){let a=seed>>>0;return ()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul
 function h2(x,z,s){let h=Math.imul(x|0,374761393)+Math.imul(z|0,668265263)+Math.imul(s|0,982451653);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
 /* хорошее перемешивание для соседних клеток (без полос и повторов) */
 function hq(a,b,c){let h=Math.imul(a|0,374761393)^Math.imul(b|0,668265263)^Math.imul(c|0,1274126177);h=Math.imul(h^(h>>>13),1103515245);h^=h>>>16;h=Math.imul(h,2246822519);h^=h>>>13;return (h>>>0)/4294967296;}
+const PR_DIV=new Set([0,1,3,8,11]);/* зоны бассейнов, которые делятся на комнаты-лабиринт */
+function prRng(a,b,c,s){let t=(h3(a,b,c,s+777)*4294967296)>>>0;return ()=>{t=(t+0x6D2B79F5)>>>0;let x=Math.imul(t^(t>>>15),1|t);x=(x+Math.imul(x^(x>>>7),61|x))^x;return((x^(x>>>14))>>>0)/4294967296;};}
 function h3(x,y,z,s){return h2((x|0)+Math.imul(y|0,73856093),(z|0)^Math.imul(y|0,19349663),s);}
 
 /* ===================== ШУМ (Simplex 2D/3D, с сидом) ===================== */
@@ -761,8 +763,29 @@ class Gen{
   prField(rx,rz){if(this.prExit(rx,rz)||h3(rx,8,rz,this.seed+64)>=.17)return false;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)if(this.prArrRaw(rx+a,rz+b))return false;return true;}
   prArrive(rx,rz){return this.prArrRaw(rx,rz);}
   prType(rx,rz){if(this.prExit(rx,rz))return 4;if(this.prField(rx,rz))return 12;if(this.prArrive(rx,rz))return 5;const t=h3(rx,3,rz,this.seed+51);
-    const W=[[0,.2],[1,.16],[2,.06],[3,.12],[6,.1],[7,.11],[8,.07],[9,.04],[10,.07],[11,.07]];/* больше открытых залов и воды */let a=0;for(const [k,w] of W){a+=w;if(t<a)return k;}return 0;}
+    const W=[[0,.22],[1,.14],[2,.05],[3,.14],[6,.08],[7,.08],[8,.1],[9,.03],[10,.05],[11,.11]];/* больше открытых залов и воды */let a=0;for(const [k,w] of W){a+=w;if(t<a)return k;}return 0;}
   /* вода только «в чаше»: если рядом пол ниже уровня воды — делаем бортик из плитки */
+  /* проёмы в стене между зонами: vert — западная граница зоны (lx=0), иначе северная (lz=0). [от,до,нижний край перемычки] */
+  prEdge(ex,ez,vert){const C=this._pe||(this._pe=new Map());const key=ex*131072+ez*2+(vert?1:0);let L=C.get(key);if(L)return L;if(C.size>4000)C.clear();
+    const A=this.prType(vert?ex-1:ex,vert?ez:ez-1),B=this.prType(ex,ez),sp=!PR_DIV.has(A)||!PR_DIV.has(B);const r=prRng(ex,ez,vert?7:8,this.seed);L=[];
+    if(sp)L.push([15,24,7]);if(!sp||r()<.3){const n=1+(r()<.45?1:0)+(r()<.15?1:0);for(let i=0;i<n;i++){const w=2+Math.floor(r()*4),a=2+Math.floor(r()*(36-w)),b=a+w-1;
+        if(L.some(d=>a<=d[1]+2&&b>=d[0]-2))continue;L.push([a,b,r()<.25?7:4+Math.floor(r()*2)]);}}if(!L.length)L.push([15,24,7]);C.set(key,L);return L;}
+  /* комнаты внутри зоны: рекурсивное деление со случайными дверями — получается лабиринт залов разного размера, всё связано */
+  prMaze(rx,rz){const C=this._pm||(this._pm=new Map());const key=rx*65536+rz;let M=C.get(key);if(M)return M;if(C.size>300)C.clear();
+    M=new Int8Array(1600);const r=prRng(rx,rz,11,this.seed),MIN=6;
+    const rng=L=>L.map(d=>[d[0],d[1]]);
+    const div=(x0,z0,x1,z1,N,S_,W,E,dep)=>{const w=x1-x0+1,h=z1-z0+1;if(w<2*MIN+1&&h<2*MIN+1)return;if(dep>1&&w<=17&&h<=17&&r()<.3)return;/* иногда оставляем большой зал */
+      const vert=w>h?true:h>w?false:r()<.5;const len=vert?h:w,lo=vert?x0:z0,hi=vert?x1:z1;if(hi-lo+1<2*MIN+1)return;
+      const ends=vert?N.concat(S_):W.concat(E);let p=-1;for(let t=0;t<8;t++){const c=lo+MIN+Math.floor(r()*(hi-lo-2*MIN+1));if(!ends.some(d=>c>=d[0]-1&&c<=d[1]+1)){p=c;break;}}if(p<0)return;
+      const a0=vert?z0:x0,a1=vert?z1:x1;const doors=[];const wide=r()<.15;const dw=wide?Math.max(3,Math.floor(len/2)):2+Math.floor(r()*3);const d0=a0+Math.floor(r()*(len-dw+1));
+      const lint=r()<.45?4+Math.floor(r()*2):2;doors.push([d0,d0+dw-1,wide?2:lint]);
+      if(len>=14&&r()<.3){const w2=2+Math.floor(r()*2),d2=a0+Math.floor(r()*(len-w2+1));if(d2>d0+dw+1||d2+w2<d0-1)doors.push([d2,d2+w2-1,2]);}
+      for(let a=a0;a<=a1;a++){const d=doors.find(q=>a>=q[0]&&a<=q[1]);const v=d?d[2]:1;if(vert)M[p*40+a]=v;else M[a*40+p]=v;}
+      const sub=(L,b0,b1)=>L.filter(d=>d[1]>=b0&&d[0]<=b1);const DR=rng(doors);
+      if(vert){div(x0,z0,p-1,z1,sub(N,x0,p-1),sub(S_,x0,p-1),W,DR,dep+1);div(p+1,z0,x1,z1,sub(N,p+1,x1),sub(S_,p+1,x1),DR,E,dep+1);}
+      else{div(x0,z0,x1,p-1,N,DR,sub(W,z0,p-1),sub(E,z0,p-1),dep+1);div(x0,p+1,x1,z1,DR,S_,sub(W,p+1,z1),sub(E,p+1,z1),dep+1);}};
+    div(1,1,39,39,rng(this.prEdge(rx,rz,false)),rng(this.prEdge(rx,rz+1,false)),rng(this.prEdge(rx,rz,true)),rng(this.prEdge(rx+1,rz,true)),0);
+    C.set(key,M);return M;}
   prInfo(x,z){const o=this.prRaw(x,z);if(o.dep>0){for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n=this.prRaw(x+dx,z+dz);if(n.fl<o.fl||n.hole||n.glow||(n.ceil2!==undefined&&n.fl<0)){o.dep=0;o.drain=false;o.rim=true;break;}}}return o;}
   prRaw(x,z){const RG=40,md=(a,n)=>((a%n)+n)%n,s=this.seed;const rx=Math.floor(x/RG),rz=Math.floor(z/RG),lx=md(x,RG),lz=md(z,RG);
     const o={fl:0,wlo:1,wall:0,dep:0,ceil:9,light:false,drain:false,rt:0};const rt=o.rt=this.prType(rx,rz);const dx=lx-20,dz=lz-20,ax=Math.abs(dx),az=Math.abs(dz),m=Math.max(ax,az),r=Math.hypot(dx+.5,dz+.5);
@@ -772,7 +795,7 @@ class Gen{
       case 0:{const S=8+Math.floor(V(1)*6),a=md(x,S),b2=md(z,S),pw=V(4)<.5?0:1;o.ceil=7+Math.floor(V(3)*6);
         if(a<=pw&&b2<=pw)o.wall=o.ceil;else if(a>=1+pw&&a<=S-1&&b2>=1+pw&&b2<=S-1)o.dep=2+Math.floor(V(2)*2);
         if(md(x,24+Math.floor(V(6)*16))<9&&md(z,24+Math.floor(V(7)*16))<9)o.ceil=0;/* большие проёмы в небо */o.light=o.ceil>0&&md(x,4)===2&&md(z,4)===2;
-        if(V(5)<.3){const P2=S*2,px=md(x,P2),pz=md(z,P2);if((px===0&&(md(z,S)<S/2-1||md(z,S)>S/2+1))||(pz===0&&(md(x,S)<S/2-1||md(x,S)>S/2+1))){o.wall=o.ceil||9;}else if(px===0||pz===0){o.wlo=Math.min(6,(o.ceil||9)-2);o.wall=o.ceil||9;}}break;}
+        break;}
       case 1:{o.ceil=0;const S=10+Math.floor(V(1)*9),a=md(x,S),b2=md(z,S);if(a===0&&b2===0)o.wall=3+Math.floor(V(2)*5);else if(a>1&&b2>1)o.dep=2+Math.floor(V(3)*3);break;}
       case 2:{const S=5+Math.floor(V(1)*4);o.ceil=3+Math.floor(V(2)*2);o.dep=1;const a=md(x,S),b2=md(z,S);if(a<2&&b2<2)o.wall=o.ceil;else if(a<2){const ln=Math.floor(x/S),sg=Math.floor(z/S);if(h3(ln,12,sg,s+52)<.45&&!(md(z,S)===3&&h3(ln,15,sg,s+55)<.5))o.wall=o.ceil;}else if(b2<2){const ln=Math.floor(z/S),sg=Math.floor(x/S);if(h3(sg,13,ln,s+53)<.45&&!(md(x,S)===3&&h3(sg,16,ln,s+56)<.5))o.wall=o.ceil;}
         o.light=!o.wall&&md(x,12)===4&&md(z,12)===4&&h3(x>>4,14,z>>4,s+54)<.5;break;}
@@ -801,8 +824,12 @@ class Gen{
       case 10:{/* террасы-ступени к центру */const st=3+Math.floor(V(1)*3),lv=3+Math.floor(V(2)*3);const k=Math.min(lv,Math.floor(m/st));o.fl=Math.max(0,lv-k);o.ceil=15;if(m<=st-1)o.dep=2;else if(md(m,st)===st-1&&m<st*lv)o.dep=1;o.light=md(x,5)===2&&md(z,5)===2;break;}
       case 11:{o.ceil=4+Math.floor(V(1)*6);const L=3+Math.floor(V(2)*3);o.dep=1+(V(3)<.4?1:0);o.light=md(x,L)===1&&md(z,L)===1;if(md(x,9)===4&&md(z,9)===4)o.dep=0;break;}}
     /* границы областей: высокие стены, в середине — арочный проём */
-    const bord=lx===0||lz===0;if(bord){const q=lx===0?lz:lx;const gap=(q>=15&&q<=24)||((q===6||q===33)&&h3(lx===0?rx:rz,17,lx===0?rz:rx,s+57)<.08);/* + изредка узкий проход */
-      if(gap){o.wlo=7;o.wall=Math.max(16,o.ceil||0);o.dep=0;o.drain=false;o.fl=0;if(o.ceil>0&&o.ceil<7){o.wlo=o.ceil+1;}}else{o.wlo=1;o.wall=Math.max(16,o.ceil||0);o.dep=0;o.drain=false;}}
+    /* лабиринт комнат: зоны с обычными залами делятся на комнаты разного размера стенами с дверными проёмами */
+    if(PR_DIV.has(rt)&&lx>0&&lz>0){const v=this.prMaze(rx,rz)[lx*40+lz];const H=o.ceil>0?o.ceil:rt===1?8:13;/* под проёмом в небо стена выше соседних потолков — без щелей */
+      if(v===1){o.wall=H;o.wlo=1;}else if(v===2){o.wall=0;o.wlo=1;}else if(v>=3){if(o.ceil===0||o.ceil>v){o.wall=H;o.wlo=v;}else o.wall=0;}}
+    /* границы зон: высокие стены с проёмами в разных местах (у особых залов — проём посередине) */
+    const bord=lx===0||lz===0;if(bord){const q=lx===0?lz:lx;const D=q===0?null:this.prEdge(rx,rz,lx===0).find(d=>q>=d[0]&&q<=d[1]);
+      if(D){o.wlo=D[2];o.wall=Math.max(16,o.ceil||0);o.dep=0;o.drain=false;o.fl=0;if(o.ceil>0&&o.ceil<o.wlo){o.wlo=o.ceil+1;}}else{o.wlo=1;o.wall=Math.max(16,o.ceil||0);o.dep=0;o.drain=false;}}
     if(o.wall&&o.wlo<=1){o.dep=0;o.drain=false;}/* под стенами и колоннами — сплошная плитка, а не вода */
     return o;}
   /* ---------- «Бескрайнее поле»: мягкие холмы, высокая колышущаяся трава, цветы, радиовышки с красными огнями,
@@ -4706,12 +4733,18 @@ function updatePlayer(dt){const p=PLAYER;if(!p.alive){p.vx=p.vz=0;physStep(p,dt)
   /* «ноклип» через удушье в песке/гравии: задыхаешься ~3 с — и проваливаешься сквозь реальность в Закулисье */
   {const hb=getB(Math.floor(p.x),Math.floor(p.y+p.eyeH),Math.floor(p.z));if(OCCB[hb]&&BL[hb].grav&&CUR.id===0&&(p.mode==='survival'||p.mode==='adventure')&&p.alive&&!GAME.changing){const t0=p.sandT||0;p.sandT=t0+dt;
     if(t0<.8&&p.sandT>=.8)SND.play('br_enter',0,0,0,{ui:true});if(p.sandT>=3.2){p.sandT=0;enterBackrooms(true);return;}}else p.sandT=0;}
+  /* чанк под ногами ещё не загружен (у друга по сети это бывает долго) — стоим на месте, а не проваливаемся в пустоту */
+  if(p.mode!=='spectator'&&!p.bfall&&!p.pfall&&!loadedAt(Math.floor(p.x),Math.floor(p.z))){p.vx=p.vy=p.vz=0;p.fallD=0;GAME.landWait=GAME.landWait||0;return;}
+  /* после выхода из Закулисья/Поля: как только земля загрузилась — ставим на неё */
+  if(GAME.landAt&&CUR.id===0){const L=safeLand(p.x,p.z);if(loadedAt(Math.floor(L[0]),Math.floor(L[1]))){const x=Math.floor(L[0]),z=Math.floor(L[1]);p.x=L[0];p.z=L[1];
+      if(GAME.landAt==='ground'){p.y=topY(x,z)+1;p.vy=0;}GAME.landAt=null;p.fallD=0;}}
   if(p.bfall){/* падение сквозь «потолок реальности» без столкновений */p.vx=p.vz=0;p.vy=-14;p.y+=p.vy*dt;p.fallD=0;
     if(p.y<=BR_F+1){p.y=BR_F+1;p.vy=0;p.bfall=false;p.onG=true;sfx('br_slam',p.x,p.y+1.6,p.z,{vol:.7});sfx('step_cloth',p.x,p.y,p.z);}return;}
   if(p.pfall){/* сквозь потолок тёмной комнаты — в бассейн */p.vx=p.vz=0;p.vy=-14;p.y+=p.vy*dt;p.fallD=0;if(p.y<=PR_F+7){p.pfall=false;p.vy=-10;}return;}
   if(p.bsky>0){p.fallD=0;if(p.onG||p.inW||p.flyNow){p.bsky-=dt;}}
   if(CUR.id===0&&p.mode==='creative'&&p.y<-8&&!p.brSnd&&!GAME.changing){p.brSnd=1;SND.play('br_enter',0,0,0,{ui:true});}else if(p.y>-6||CUR.id!==0)p.brSnd=0;
-  if(CUR.id===0&&p.mode==='creative'&&p.y<-28&&!GAME.changing&&p.alive){enterBackrooms();return;}
+  if(GAME.brCool>0)GAME.brCool-=dt;
+  if(CUR.id===0&&p.mode==='creative'&&p.y<-28&&!GAME.changing&&p.alive){if(GAME.brCool>0||GAME.landAt){/* только что вышли — не затягивает обратно */const L=safeLand(p.x,p.z);p.x=L[0];p.z=L[1];p.y=topY(Math.floor(p.x),Math.floor(p.z))+1;p.vy=0;p.fallD=0;}else{enterBackrooms();return;}}
   if(CUR.id===3&&p.y<BR_F-.5&&!p.brSnd2&&!GAME.changing){p.brSnd2=1;SND.play(GEN.brInfo(Math.floor(p.x),Math.floor(p.z)).rt===2?'br_fall':'br_exit',0,0,0,{ui:true});}else if(CUR.id!==3)p.brSnd2=0;
   if(CUR.id===3&&p.y<BR_F-9&&!GAME.changing&&p.alive){p.brSnd2=0;if(GEN.brInfo(Math.floor(p.x),Math.floor(p.z)).rt===2)enterPool();else backroomsExit();return;}
   if(CUR.id===4&&!GAME.changing&&p.alive&&p.y<PR_F-32){SND.play('br_exit',0,0,0,{ui:true});poolExit();return;}
@@ -4884,8 +4917,12 @@ function enterBackrooms(sand){const p=PLAYER;if(GAME.changing)return;stashInv();
   const yaw=p.yaw,pitch=p.pitch;
   changeDim(3,x+.5,BR_F+16,z+.5,()=>{p.x=x+.5;p.z=z+.5;p.y=BR_F+16;p.yaw=yaw;p.pitch=pitch;p.vx=p.vy=p.vz=0;p.fallD=0;p.bfall=true;GAME.fade=1;achieve('backrooms');SND.play('br_arrive',0,0,0,{ui:true});UI.dirty=true;},true);}
 /* уровень 0 → Верхний мир: тёмная яма в полу тёмной комнаты. Падаешь в темноту — и бесшовно вываливаешься из неба туда, откуда провалился */
+/* куда вернуть игрока в Верхний мир: если там дыра в пустоту (в творческом туда и проваливались) — ищем рядом твёрдую землю */
+function safeLand(x,z){x=Math.floor(x);z=Math.floor(z);if(!loadedAt(x,z))return [x+.5,z+.5];/* ещё не загружено — решим, когда загрузится */const ok=(a,c)=>{if(!loadedAt(a,c))return false;const t=topY(a,c);if(t<3)return false;const id=getB(a,t,c);return BL[id].liquid!=='lava'&&!BL[id].portal;};
+  for(let r=0;r<=24;r++)for(let a=-r;a<=r;a++)for(const [dx,dz] of r?[[a,-r],[a,r],[-r,a],[r,a]]:[[0,0]])if(ok(x+dx,z+dz))return [x+dx+.5,z+dz+.5];
+  return [GAME.spawn[0],GAME.spawn[2]];}
 function backroomsExit(){const p=PLAYER;if(GAME.changing||CUR.id!==3)return;const f=GAME.brFrom||[GAME.spawn[0],GAME.spawn[2]];GAME.fade=1;const yaw=p.yaw;
-  changeDim(0,f[0],CH-2,f[1],()=>{p.x=f[0];p.z=f[1];p.y=CH-2;p.yaw=yaw;p.pitch=-.9;p.vx=p.vz=0;p.vy=-8;p.fallD=0;p.bsky=2;GAME.fade=1;if(GAME.brPrev)p.mode=GAME.brPrev;GAME.brPrev=null;GAME.brFrom=null;
+  changeDim(0,f[0],CH-2,f[1],()=>{const L=safeLand(f[0],f[1]);p.x=L[0];p.z=L[1];p.y=CH-2;GAME.brCool=8;p.flyNow=false;GAME.landAt='sky';p.yaw=yaw;p.pitch=-.9;p.vx=p.vz=0;p.vy=-8;p.fallD=0;p.bsky=2;GAME.fade=1;if(GAME.brPrev)p.mode=GAME.brPrev;GAME.brPrev=null;GAME.brFrom=null;
     restoreInv();achieve('backrooms_exit');UI.dirty=true;},true);}
 /* уровень 0 → уровень 37: падение в бездонную дыру зала ям. Вываливаешься с неба прямо в бассейн */
 function enterPool(){const p=PLAYER;if(GAME.changing||CUR.id!==3)return;GAME.fade=1;GAME.fadeC='0,0,0';const yaw=p.yaw;
@@ -4896,7 +4933,7 @@ function enterPool(){const p=PLAYER;if(GAME.changing||CUR.id!==3)return;GAME.fad
   changeDim(4,x,PR_F+26,z,()=>{p.x=x;p.z=z;p.y=PR_F+26;p.yaw=yaw;p.pitch=-1.2;p.vx=p.vz=0;p.vy=0;p.fallD=0;p.pfall=true;p.bsky=2;GAME.fade=1;achieve('poolrooms');SND.play('pr_enter',0,0,0,{ui:true});UI.dirty=true;},true);}
 /* уровень 37 → Верхний мир: нырнуть на дно глубокого бассейна к водостоку. Экран заливает синим — и ты падаешь из неба над домом */
 function poolExit(){const p=PLAYER;if(GAME.changing||CUR.id!==4)return;const f=GAME.brFrom||[GAME.spawn[0],GAME.spawn[2]];GAME.fade=1;const yaw=p.yaw;
-  changeDim(0,f[0],CH-2,f[1],()=>{p.x=f[0];p.z=f[1];p.y=CH-2;p.yaw=yaw;p.pitch=-.9;p.vx=p.vz=0;p.vy=-8;p.fallD=0;p.bsky=2;p.air=300;GAME.fade=1;if(GAME.brPrev)p.mode=GAME.brPrev;GAME.brPrev=null;GAME.brFrom=null;
+  changeDim(0,f[0],CH-2,f[1],()=>{const L=safeLand(f[0],f[1]);p.x=L[0];p.z=L[1];p.y=CH-2;GAME.brCool=8;p.flyNow=false;GAME.landAt='sky';p.yaw=yaw;p.pitch=-.9;p.vx=p.vz=0;p.vy=-8;p.fallD=0;p.bsky=2;p.air=300;GAME.fade=1;if(GAME.brPrev)p.mode=GAME.brPrev;GAME.brPrev=null;GAME.brFrom=null;
     restoreInv();achieve('poolrooms_exit');UI.dirty=true;},true);}
 /* → Поле: в тёплом свете (лестница из уровня 0 или светлый проём в Бассейнах). Появляешься стоя в траве, лицом к закату */
 function enterField(){const p=PLAYER;if(GAME.changing||(CUR.id!==3&&CUR.id!==4))return;GAME.fade=1;GAME.fadeC='255,228,196';SND.play('fl_enter',0,0,0,{ui:true});
@@ -4908,7 +4945,7 @@ function enterField(){const p=PLAYER;if(GAME.changing||(CUR.id!==3&&CUR.id!==4))
   changeDim(5,x+.5,y,z+.5,()=>{p.x=x+.5;p.z=z+.5;p.y=FL_Y+GEN.flH(x,z)+1;p.yaw=Math.PI/2-.35;p.pitch=.05;p.vx=p.vy=p.vz=0;p.fallD=0;p.bsky=1;GAME.fade=1;GAME.fadeC='255,228,196';achieve('field');UI.dirty=true;},true);}
 /* Поле → Верхний мир: шагнуть в тёмный дверной проём, одиноко стоящий посреди поля. Просыпаешься стоя на земле там, откуда провалился */
 function fieldExit(){const p=PLAYER;if(GAME.changing||CUR.id!==5)return;const f=GAME.brFrom||[GAME.spawn[0],GAME.spawn[2]];GAME.fade=1;GAME.fadeC='0,0,0';SND.play('fl_exit',0,0,0,{ui:true});
-  changeDim(0,f[0],100,f[1],()=>{const x=Math.floor(f[0]),z=Math.floor(f[1]);p.x=x+.5;p.z=z+.5;p.y=topY(x,z)+1;p.vx=p.vy=p.vz=0;p.fallD=0;p.bsky=1;GAME.fade=1;GAME.fadeC='255,255,255';if(GAME.brPrev)p.mode=GAME.brPrev;GAME.brPrev=null;GAME.brFrom=null;
+  changeDim(0,f[0],100,f[1],()=>{const L=safeLand(f[0],f[1]),x=Math.floor(L[0]),z=Math.floor(L[1]);p.x=x+.5;p.z=z+.5;p.y=topY(x,z)+1;GAME.brCool=8;p.flyNow=false;GAME.safeT=4;GAME.landAt='ground';p.vx=p.vy=p.vz=0;p.fallD=0;p.bsky=1;GAME.fade=1;GAME.fadeC='255,255,255';if(GAME.brPrev)p.mode=GAME.brPrev;GAME.brPrev=null;GAME.brFrom=null;
     restoreInv();achieve('field_exit');toast('Вы проснулись…');UI.dirty=true;},true);}
 /* ближайший разлом (для звука-подсказки) */
 function brRiftNear(x,z){const RG=48,rx=Math.floor(x/RG),rz=Math.floor(z/RG);let best=null,bd=1e9;for(let a=-2;a<=2;a++)for(let b=-2;b<=2;b++)if(GEN.brRift(rx+a,rz+b)){const cx=(rx+a)*RG+24.5,cz=(rz+b)*RG+24.5,d=Math.hypot(cx-x,cz-z);if(d<bd){bd=d;best=[cx,BR_F,cz,d];}}return best;}
